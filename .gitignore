@@ -1,0 +1,18 @@
+# Xcode & Swift Package Manager
+.DS_Store
+*/.DS_Store
+.build/
+Packages/
+Package.resolved
+DerivedData/
+.swiftpm/
+
+# User-specific Xcode files
+*.xcuserdata/
+*.xcworkspace/xcuserdata/
+UserInterfaceState.xcuserstate
+
+# Temporary files
+*.swp
+*~
+*.tmp
