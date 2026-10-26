@@ -46,7 +46,7 @@ struct AddTasksView: View {
         HStack(spacing: 0) {
             // Sidebar: goal selector
             goalSidebar
-                .frame(width: 230)
+                .frame(width: 260)
                 .background(Color(NSColor.controlBackgroundColor))
 
             Divider()
@@ -96,31 +96,40 @@ struct AddTasksView: View {
         VStack(spacing: 0) {
             HStack {
                 Text("Goals")
-                    .font(LKFont.headline)
-                    .foregroundColor(.labelSecondary)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.labelPrimary)
                 Spacer()
                 Button {
                     activeSheet = .addGoal
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.accentColor)
-                        .font(.system(size: 16))
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 12))
+                        Text("Add")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.12))
+                    .cornerRadius(5)
                 }
                 .buttonStyle(.plain)
                 .focusable(false)
                 .help("Add Goal")
             }
-            .padding(LKSpacing.md)
+            .padding(.horizontal, LKSpacing.md)
+            .padding(.vertical, LKSpacing.sm)
 
             Divider()
 
             ScrollView {
-                VStack(spacing: 4) {
+                VStack(spacing: 8) {
                     ForEach(vm.goals) { goal in
                         goalRow(goal)
                     }
                 }
-                .padding(LKSpacing.sm)
+                .padding(8)
             }
         }
     }
@@ -128,89 +137,110 @@ struct AddTasksView: View {
     private func goalRow(_ goal: Goal) -> some View {
         let isSelected = vm.activeGoal?.id == goal.id
 
-        return HStack(spacing: LKSpacing.sm) {
-            Circle()
-                .fill(isSelected ? Color.accentColor : Color.labelSecondary.opacity(0.3))
-                .frame(width: 8, height: 8)
+        return VStack(alignment: .leading, spacing: 6) {
+            // Row 1: Status indicator, Goal Title, and Active Badge / Make Active Button
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(isSelected ? Color.accentColor : Color.labelSecondary.opacity(0.35))
+                    .frame(width: 8, height: 8)
 
-            VStack(alignment: .leading, spacing: 2) {
                 Text(goal.name)
-                    .font(LKFont.body)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
                     .foregroundColor(.labelPrimary)
                     .lineLimit(1)
 
-                HStack(spacing: 4) {
-                    Text("\(goal.allLeafTasks.count) tasks")
-                    Text("·")
-                    Text("\(Int(goal.overallProgress * 100))%")
-                    if let dl = goal.targetDeadline {
-                        Text("·")
-                        Text(dl.formattedDDMMYYYY)
-                            .font(.system(size: 10, design: .monospaced))
+                Spacer()
+
+                if vm.isGoalActive(goal) {
+                    GlowingActiveBadge(title: "ACTIVE", size: 5)
+                } else {
+                    Button {
+                        vm.setActiveGoal(goal)
+                    } label: {
+                        Text("Make Active")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.12))
+                            .cornerRadius(4)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(Color.green.opacity(0.4), lineWidth: 0.8)
+                            )
                     }
+                    .buttonStyle(.plain)
+                    .focusable(false)
+                    .help("Set as Active Goal")
                 }
-                .font(LKFont.caption)
-                .foregroundColor(.labelSecondary)
             }
 
-            Spacer()
+            // Row 2: Metadata (tasks count, percentage, deadline)
+            HStack(spacing: 4) {
+                Text("\(goal.allLeafTasks.count) tasks · \(Int(goal.overallProgress * 100))%")
+                if let dl = goal.targetDeadline {
+                    Text("·")
+                    Text(dl.formattedDDMMYYYY)
+                        .font(.system(size: 10, design: .monospaced))
+                }
+            }
+            .font(.system(size: 11))
+            .foregroundColor(.labelSecondary)
+            .lineLimit(1)
 
-            if vm.isGoalActive(goal) {
-                GlowingActiveBadge(title: "ACTIVE", size: 6)
-            } else {
+            // Row 3: Action Buttons (Edit & Delete)
+            HStack(spacing: 6) {
+                Spacer()
+
                 Button {
-                    vm.setActiveGoal(goal)
+                    activeSheet = .editGoal(goal)
                 } label: {
-                    Text("Make Active")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.green)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(4)
+                    HStack(spacing: 3) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 9))
+                        Text("Edit")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(.labelSecondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(4)
                 }
                 .buttonStyle(.plain)
                 .focusable(false)
-                .help("Set as Active Goal")
-            }
+                .help("Edit Goal")
 
-            // Quick Edit Goal Button
-            Button {
-                activeSheet = .editGoal(goal)
-            } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 11))
-                    .foregroundColor(.labelSecondary)
-                    .padding(4)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(4)
-            }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .help("Edit Goal")
-
-            // Direct Delete Goal Button (No 3 dots, no arrow)
-            Button {
-                vm.deleteGoal(id: goal.id)
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 11))
-                    .foregroundColor(.red.opacity(0.8))
-                    .padding(4)
+                Button {
+                    vm.deleteGoal(id: goal.id)
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 9))
+                        Text("Delete")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(.red.opacity(0.85))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Delete Goal")
             }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .help("Delete Goal")
         }
-        .padding(LKSpacing.sm)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(
-            isSelected
-            ? Color(NSColor.selectedControlColor).opacity(0.12)
-            : Color.clear
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.white.opacity(0.03))
         )
-        .cornerRadius(LKRadius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isSelected ? Color.accentColor.opacity(0.35) : Color(NSColor.separatorColor).opacity(0.3), lineWidth: 1)
+        )
         .contentShape(Rectangle())
         .onTapGesture { vm.setActiveGoal(goal) }
     }
@@ -557,21 +587,6 @@ struct TaskRowView: View {
 
                 StatusBadge(status: task.status)
                 PriorityBadge(priority: task.priority)
-
-                // Button to make task active
-                Button {
-                    vm.toggleActiveTask(task)
-                } label: {
-                    Image(systemName: vm.isTaskActive(task) ? "target" : "scope")
-                        .font(.system(size: 12))
-                        .foregroundColor(vm.isTaskActive(task) ? .green : .labelSecondary.opacity(0.5))
-                        .padding(4)
-                        .background(vm.isTaskActive(task) ? Color.green.opacity(0.15) : Color.clear)
-                        .cornerRadius(4)
-                }
-                .buttonStyle(.plain)
-                .focusable(false)
-                .help(vm.isTaskActive(task) ? "Active Task (Click to unset)" : "Set as Active Task")
 
                 // Edit Task Button
                 Button {

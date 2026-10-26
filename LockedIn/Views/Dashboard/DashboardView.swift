@@ -145,15 +145,7 @@ struct DashboardView: View {
 
     private func activeTaskCard(goal: Goal) -> some View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
-            HStack(spacing: 8) {
-                Text("ACTIVE TASK")
-                    .font(LKFont.headline)
-                    .foregroundColor(.labelSecondary)
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-
-                GlowingActiveBadge(title: "ACTIVE", size: 6)
-            }
+            SectionHeader(title: "Active Task")
 
             if let task = vm.nextUpcomingTask {
                 HStack(spacing: LKSpacing.md) {
@@ -244,18 +236,6 @@ struct DashboardView: View {
     @ViewBuilder
     private func upcomingTaskRow(task: Task) -> some View {
         HStack(spacing: LKSpacing.sm) {
-            // Button to set as active task
-            Button {
-                vm.toggleActiveTask(task)
-            } label: {
-                Image(systemName: vm.isTaskActive(task) ? "target" : "scope")
-                    .font(.system(size: 13))
-                    .foregroundColor(vm.isTaskActive(task) ? .green : .labelSecondary.opacity(0.4))
-            }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .help(vm.isTaskActive(task) ? "Active Task (Click to unset)" : "Set as Active Task")
-
             Image(systemName: task.isMilestone ? "flag.fill" : task.status.icon)
                 .foregroundColor(task.isMilestone ? .yellow : .labelSecondary)
                 .frame(width: 16)

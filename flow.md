@@ -18,11 +18,11 @@ The system strictly avoids hardcoded academic or domain jargon across all layers
 
 | Canonical Entity | Formal Definition | Operational Role |
 | :--- | :--- | :--- |
-| **Goal** | Overarching high-order outcome to be achieved | Root entity encapsulating categories, target deadline, and cumulative progress. Every goal is fully editable and displays a **glowing green effect** when active. |
+| **Goal** | Overarching high-order outcome to be achieved | Root entity encapsulating categories, target deadline, and cumulative progress. Every goal is fully editable and displays a **glowing green effect** when active. Only goals possess active toggle state. |
 | **Target Deadline** | The temporal upper bound ($T_{\text{target}}$) for goal completion | Drives discrete temporal delta countdown ($\Delta t = T_{\text{target}} - T_{\text{now}}$). Formatted as `DD-MM-YYYY`. |
 | **Category** | User-defined taxonomy partition | Arbitrary grouping mechanism with chromatic identity and completion ring. Direct edit and delete actions (no 3-dots menus). |
 | **Milestone** | Non-fungible checkpoint indicating substantive state transition | High-visibility priority anchor alerting user upon state completion. |
-| **Task & Subtask** | Actionable atomic and composite work units | State-bearing units with quick inline creation, target toggles, deadlines (`DD-MM-YYYY`), and direct delete buttons. |
+| **Task & Subtask** | Actionable atomic and composite work units | State-bearing units with quick inline creation, deadlines (`DD-MM-YYYY`), status badges, and direct delete buttons (task-level active toggles eliminated in favor of automatic nearest-deadline resolution). |
 | **Overall Progress** | Weighted progress metric across all eligible leaf tasks | Formal completion ratio: $P = \frac{\sum w_i \cdot \mathbb{I}(\text{status}_i = \text{completed})}{\sum w_i}$. |
 | **Menu Bar Ticker** | Dual-phase 5-second alternating state extra | Always on even if main window is closed. Periodically alternates between overall goal deadline and nearest task deadline (with task name kept strictly private). |
 
@@ -84,15 +84,16 @@ LockedIn enforces exactly three primary navigation tabs:
 - **Zero Blue Squares / Focus Rings**: Keyboard focus rings and accidental blue strokes removed on window start.
 - **Target Deadline Countdown**: Displays target date formatted strictly as `DD-MM-YYYY` with delta days remaining.
 - **Goal Editor Access**: Single-click "Edit" button enabling title and target deadline adjustments.
-- **Active Task Card**: Highlights the currently active work unit with a glowing `[● ACTIVE]` indicator and quick completion button.
-- **Upcoming Tasks Feed**: Chronologically ordered work queue with `DD-MM-YYYY` formatting and 1-click active task assignment.
+- **Current / Nearest Task Card**: Highlights the nearest upcoming incomplete task with status and priority badges.
+- **Upcoming Tasks Feed**: Chronologically ordered work queue with `DD-MM-YYYY` formatting and milestone indicators.
 
 ### 3.2 Tab 2: Add Tasks (`AddTasksView`)
-- **Active Goal Selector**: Sidebar goals each feature an active state check; inactive goals offer a 1-click "Make Active" button; active goal radiates a glowing green effect.
+- **Organized Multi-Row Goal Sidebar Cards**: Sidebar width set to 260pt with structured cards featuring Goal Title + Glowing Active Badge / Make Active Button on row 1, single-line stats (`X tasks · X% · DD-MM-YYYY`) on row 2 (preventing any vertical character stacking), and trailing Edit / Delete buttons on row 3.
+- **Goal-Exclusive Active Semantics**: Active status is strictly reserved for high-order **Goals**. The task-level active button has been completely eliminated to maintain clarity and prevent dual-level active state ambiguity.
 - **Direct Actions (No 3-Dots, No Dropdown Arrows)**: Every goal, category, and task row features direct, dedicated **Edit** and **Delete** buttons, completely eliminating multi-step dropdown menus.
 - **Inline Task Quick-Add**: Text input bar within every category card persists immediately on Return key.
 - **Detailed Modal Sheets**: Single-coordinator sheet system (`AddTasksSheet`) avoiding modal suppression bugs.
-- **Task Row Controls**: Status toggle, milestone flag, active task toggle, deadline (`DD-MM-YYYY`), and direct delete trash button.
+- **Task Row Controls**: Status toggle, milestone flag, deadline (`DD-MM-YYYY`), status badge, priority badge, and direct edit & delete trash buttons.
 
 ### 3.3 Tab 3: Settings (`SettingsView`)
 - **Active Goal Management**: Displays the glowing green active goal badge with direct deadline editing and goal switching.
@@ -165,7 +166,8 @@ Enforced across:
 | **Phase 2** | UI Components & 3-Tab Structure | Built `DashboardView`, `AddTasksView`, `SettingsView`, and `MenuBarView`. |
 | **Phase 3** | Universal Packaging & Distribution | Authored `build_dmg.sh`, generated universal binary (arm64 + x86_64), and released DMG. |
 | **Phase 4** | Refinement & Polish | Embedded LockedIn app icon, removed focus timer, removed tab blue borders, enabled inline task creation. |
-| **Phase 5** | Strict Enhancements | Standardized `DD-MM-YYYY` everywhere, removed all 3-dots/arrow menus with direct delete buttons, added glowing green effect for active goals, enabled task activation, ensured always-on menu bar lifecycle, and restricted menu bar task ticker to date-only. |
+| **Phase 5** | Strict Enhancements | Standardized `DD-MM-YYYY` everywhere, removed all 3-dots/arrow menus with direct delete buttons, added glowing green effect for active goals, ensured always-on menu bar lifecycle, and restricted menu bar task ticker to date-only. |
+| **Phase 6** | Goal-Exclusive Active Semantics & Sidebar Layout Restructuring | Overhauled Add Tasks goal sidebar with 260pt multi-row card hierarchy (Title + Active Badge on top, dedicated stats line, bottom-aligned Edit/Delete), fixed `GlowingActiveBadge` to prevent text splitting, and completely removed task-level active buttons to maintain unambiguous goal-only active state semantics. |
 
 ---
 

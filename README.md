@@ -49,17 +49,17 @@ Goal ──▶ Categories ──▶ Tasks & Subtasks ──▶ Live DD-MM-YYYY C
 ## ✨ Core Highlights
 
 ### 🎯 Domain-Neutral Data Architecture
-- **Goal**: Any high-order outcome. **Every goal is fully editable** and displays an eye-catching **glowing green effect** when active.
+- **Goal**: Any high-order outcome. **Every goal is fully editable** and displays an eye-catching **glowing green effect** when active. Active state is **strictly goal-level**.
 - **Target Deadline**: The definitive target date formatted strictly as `DD-MM-YYYY` (e.g. `31-12-2026`), driving live countdowns.
 - **Category**: Flexible, user-colored grouping of tasks with visual completion rings.
 - **Milestone**: Non-fungible checkpoints that visually anchor substantive progress.
-- **Task & Subtask**: Granular work items with quick inline creation, target active toggles, optional deadlines, and priorities.
+- **Task & Subtask**: Granular work items with quick inline creation, optional deadlines (`DD-MM-YYYY`), status badges, and priorities (task-level active buttons removed in favor of automatic nearest-deadline resolution).
 - **Overall Progress**: Mathematically computed, weighted completion across all leaf tasks.
 
 ### 🧭 Strict Three-Tab Navigation Paradigm
 LockedIn maintains a clean, distraction-free environment organized into strictly three primary views:
-1. **Dashboard**: Glowing green active goal card, live target countdown (`DD-MM-YYYY`), overall progress ring, active task showcase, and milestone tracker. No accidental blue startup focus squares.
-2. **Add Tasks**: Hierarchical goal sidebar with 1-click "Make Active" buttons, category accordions, **instant inline task quick-add**, and direct 1-click **Edit** and **Delete** buttons (no dropdown arrows or 3-dots menus!).
+1. **Dashboard**: Glowing green active goal card, live target countdown (`DD-MM-YYYY`), overall progress ring, nearest upcoming task card, and milestone tracker. No accidental blue startup focus squares.
+2. **Add Tasks**: Structured 260pt goal sidebar with organized multi-row cards (Title + Active badge/button, full-width stats row preventing text wrapping, and direct 1-click **Edit** and **Delete** buttons), category accordions, and **instant inline task quick-add** (no dropdown arrows or 3-dots menus!).
 3. **Settings**: Restructured preferences — active goal & deadline editing, System/Light/Dark appearance switcher (without intrusive blue borders), 5-second menu bar ticker configuration, custom notifications, launch-at-login, and JSON data backup/restore.
 
 ### ⏱️ Persistent, Always-On Menu Bar Extra

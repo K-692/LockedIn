@@ -56,7 +56,6 @@ struct AppSettings: Codable {
     // Onboarding
     var hasCompletedOnboarding: Bool = false
 
-    // Active goal & task
+    // Active goal
     var activeGoalId: UUID?
-    var activeTaskId: UUID?
 }

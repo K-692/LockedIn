@@ -199,28 +199,6 @@ final class AppViewModel: ObservableObject {
         activeGoal?.id == goal.id
     }
 
-    var activeTaskId: UUID? {
-        settings.activeTaskId
-    }
-
-    func isTaskActive(_ task: Task) -> Bool {
-        settings.activeTaskId == task.id
-    }
-
-    func toggleActiveTask(_ task: Task) {
-        if settings.activeTaskId == task.id {
-            settings.activeTaskId = nil
-        } else {
-            settings.activeTaskId = task.id
-        }
-        save()
-    }
-
-    func setActiveTask(_ task: Task?) {
-        settings.activeTaskId = task?.id
-        save()
-    }
-
     /// The most imminent incomplete task across the active goal (earliest deadline first).
     var nearestTargetTask: Task? {
         guard let goal = activeGoal else { return nil }
@@ -238,13 +216,7 @@ final class AppViewModel: ObservableObject {
 
     /// Next upcoming task (not completed) across the active goal.
     var nextUpcomingTask: Task? {
-        guard let goal = activeGoal else { return nil }
-        let incomplete = goal.allLeafTasks.filter { $0.status != .completed }
-        if let explicitId = settings.activeTaskId,
-           let explicit = incomplete.first(where: { $0.id == explicitId }) {
-            return explicit
-        }
-        return nearestTargetTask
+        nearestTargetTask
     }
 
     // MARK: - Settings

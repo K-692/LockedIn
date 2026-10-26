@@ -224,7 +224,9 @@ struct GlowingActiveBadge: View {
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(.green)
                 .tracking(0.6)
+                .lineLimit(1)
         }
+        .fixedSize()
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(Color.green.opacity(0.12))
