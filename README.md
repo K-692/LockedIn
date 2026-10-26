@@ -41,7 +41,7 @@
 Whether steering a doctoral dissertation, authoring a book, managing an engineering roadmap, passing licensing exams, or executing athletic training blocks, **LockedIn** enforces a strictly **domain-neutral architecture**. You will never find hardcoded academic assumptions or rigid taxonomy. The terminology adapts seamlessly to whatever outcome you choose to conquer.
 
 ```
-Goal ──▶ Categories ──▶ Tasks & Subtasks ──▶ Live YY-MM-DD Countdown & Menu Bar Ticker
+Goal ──▶ Categories ──▶ Tasks & Subtasks ──▶ Live DD-MM-YYYY Countdown & Menu Bar Ticker
 ```
 
 ---
@@ -49,30 +49,36 @@ Goal ──▶ Categories ──▶ Tasks & Subtasks ──▶ Live YY-MM-DD Cou
 ## ✨ Core Highlights
 
 ### 🎯 Domain-Neutral Data Architecture
-- **Goal**: Any high-order outcome (research, product launch, marathon, licensing). **Every goal is fully editable** at any time.
-- **Target Deadline**: The definitive target date formatted strictly as `YY-MM-DD` (e.g. `26-12-31`), driving live countdowns.
+- **Goal**: Any high-order outcome. **Every goal is fully editable** and displays an eye-catching **glowing green effect** when active.
+- **Target Deadline**: The definitive target date formatted strictly as `DD-MM-YYYY` (e.g. `31-12-2026`), driving live countdowns.
 - **Category**: Flexible, user-colored grouping of tasks with visual completion rings.
 - **Milestone**: Non-fungible checkpoints that visually anchor substantive progress.
-- **Task & Subtask**: Granular work items with quick inline creation, optional deadlines, and priorities.
+- **Task & Subtask**: Granular work items with quick inline creation, target active toggles, optional deadlines, and priorities.
 - **Overall Progress**: Mathematically computed, weighted completion across all leaf tasks.
 
 ### 🧭 Strict Three-Tab Navigation Paradigm
 LockedIn maintains a clean, distraction-free environment organized into strictly three primary views:
-1. **Dashboard**: Live target countdown (`YY-MM-DD`), overall progress ring, next upcoming target task card, upcoming tasks ledger, and milestone tracker.
-2. **Add Tasks**: Hierarchical goal sidebar, category accordions with progress rings, **instant inline task quick-add**, detailed modal task sheets with subtasks, and contextual action menus.
-3. **Settings**: Restructured, clean grouped preferences — active goal & deadline editing, System/Light/Dark appearance switcher (without intrusive blue borders), 5-second menu bar ticker configuration, custom notifications, launch-at-login, and JSON data backup/restore.
+1. **Dashboard**: Glowing green active goal card, live target countdown (`DD-MM-YYYY`), overall progress ring, active task showcase, and milestone tracker. No accidental blue startup focus squares.
+2. **Add Tasks**: Hierarchical goal sidebar with 1-click "Make Active" buttons, category accordions, **instant inline task quick-add**, and direct 1-click **Edit** and **Delete** buttons (no dropdown arrows or 3-dots menus!).
+3. **Settings**: Restructured preferences — active goal & deadline editing, System/Light/Dark appearance switcher (without intrusive blue borders), 5-second menu bar ticker configuration, custom notifications, launch-at-login, and JSON data backup/restore.
 
-### 🔄 5-Second Alternating Menu Bar Ticker
-The menu bar companion works continuously even when the main window is closed:
-- **Phase A (5 seconds)**: Displays overall goal target deadline (`YY-MM-DD`), remaining days (`(142d)`), and progress percentage.
-- **Phase B (5 seconds)**: Displays the **most near target task** with its title and deadline (`YY-MM-DD`).
+### ⏱️ Persistent, Always-On Menu Bar Extra
+- The menu bar icon **stays always on even if the main application window is closed**.
+- Reopen the app instantly at any time from the menu bar popover or Dock.
+
+### 🔄 5-Second Alternating Menu Bar Ticker (Private Date-Only)
+- **Phase A (5 seconds)**: Displays overall goal target deadline (`DD-MM-YYYY`), remaining days (`(142d)`), and progress percentage.
+- **Phase B (5 seconds)**: Displays the **date for the recent task with an icon** (`[checklist] DD-MM-YYYY (Xd)`). **The task title is kept strictly private and never exposed in the menu bar.**
 - Quick popover access to a mini-dashboard and upcoming tasks.
 
-### 📅 Uniform `YY-MM-DD` Date Formatting Everywhere
-Dates across all screens, countdown badges, task rows, form sheets, and menu bar extras are strictly formatted in the clean, unambiguous `YY-MM-DD` standard.
+### 📅 Uniform `DD-MM-YYYY` Date Formatting Everywhere
+Dates across all screens, countdown badges, task rows, form sheets, and menu bar extras are strictly formatted in the clean, international `DD-MM-YYYY` standard.
+
+### 🗑️ Direct Delete Actions (No 3-Dots, No Dropdown Arrows)
+All multi-step dropdown menus have been replaced with dedicated, direct 1-click **Delete** buttons across goals, categories, and tasks.
 
 ### 🎨 Clean, Native macOS Aesthetics
-- Native macOS vibrancy and subtle styling without awkward blue borders on tab buttons or appearance pickers.
+- Native macOS vibrancy without awkward blue borders on tab buttons, appearance pickers, or startup cards.
 - Embedded high-resolution LockedIn icon branding throughout the interface.
 - Three appearance preferences: **System** (follows macOS dynamically), **Light**, and **Dark**.
 
@@ -95,20 +101,20 @@ LockedIn/
 │   └── build_dmg.sh                 # Universal DMG build script (arm64 + x86_64)
 ├── LockedIn/
 │   ├── App/
-│   │   └── LockedInApp.swift        # @main entry point, Scene & 5s MenuBarExtra ticker
+│   │   └── LockedInApp.swift        # @main entry point, Scene & Always-On MenuBarExtra
 │   ├── Models/
 │   │   ├── Goal.swift               # Root outcome model & progress logic
 │   │   ├── Category.swift           # User-defined grouping model
 │   │   ├── Task.swift               # Tasks, subtasks, milestones, statuses, deadlines
 │   │   └── AppSettings.swift        # Appearance, notifications, preferences
 │   ├── ViewModels/
-│   │   └── AppViewModel.swift       # Central state store & 5s menu bar timer
+│   │   └── AppViewModel.swift       # Central state store, active task toggles, 5s ticker
 │   ├── Views/
 │   │   ├── ContentView.swift        # Master container with 3 primary tabs & logo
 │   │   ├── Dashboard/
-│   │   │   └── DashboardView.swift  # Countdown, progress ring, next target task
+│   │   │   └── DashboardView.swift  # Glowing active goal, progress ring, active task
 │   │   ├── AddTasks/
-│   │   │   ├── AddTasksView.swift   # Category accordions, inline task add, editing
+│   │   │   ├── AddTasksView.swift   # Categories, inline task add, direct delete buttons
 │   │   │   └── FormSheets.swift     # Modal builders for goals/categories/tasks
 │   │   ├── Settings/
 │   │   │   └── SettingsView.swift   # Grouped settings, goal editor, backup
@@ -117,7 +123,7 @@ LockedIn/
 │   │   ├── Onboarding/
 │   │   │   └── OnboardingView.swift # First-launch guided configuration
 │   │   └── Shared/
-│   │       ├── DesignSystem.swift   # Tokens, YY-MM-DD format, ProgressRing, CountdownDisplay
+│   │       ├── DesignSystem.swift   # Tokens, DD-MM-YYYY format, GlowingActiveBadge
 │   │       └── AppIconAsset.swift   # Embedded high-res app icon view & provider
 │   ├── Services/
 │   │   ├── PersistenceService.swift # Atomic JSON read/write & backup engine
@@ -185,8 +191,8 @@ Press `Cmd + R` in Xcode to build and run.
 | **Architecture** | Apple Silicon (arm64) & Intel (x86_64) Universal |
 | **Frameworks** | SwiftUI, AppKit, Combine, UserNotifications, UniformTypeIdentifiers |
 | **Storage Engine** | Atomic serialized JSON with crash recovery |
-| **Date Format Standard** | `YY-MM-DD` across all views |
-| **Menu Bar Mode** | Alternating 5-second ticker (Overall Goal Countdown vs Nearest Task) |
+| **Date Format Standard** | `DD-MM-YYYY` across all views |
+| **Menu Bar Mode** | Always-On, Alternating 5-second ticker (Goal Countdown vs Private Task Date) |
 | **UI Paradigms** | 3-tab segmented navigation, Glassmorphism, Semantic Colors |
 
 ---

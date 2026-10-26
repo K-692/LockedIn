@@ -190,15 +190,50 @@ extension Color {
     }
 }
 
-// MARK: - Date Formatting (YY-MM-DD)
+// MARK: - Date Formatting (DD-MM-YYYY)
 
 extension Date {
-    /// Strictly formats date as YY-MM-DD (e.g. 26-10-31)
-    var formattedYYMMDD: String {
+    /// Formats date strictly as DD-MM-YYYY (e.g. 31-10-2026)
+    var formattedDDMMYYYY: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yy-MM-dd"
+        formatter.dateFormat = "dd-MM-yyyy"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter.string(from: self)
+    }
+
+    /// Alias ensuring DD-MM-YYYY is used everywhere
+    var formattedYYMMDD: String {
+        formattedDDMMYYYY
+    }
+}
+
+// MARK: - Glowing Active Badge
+
+struct GlowingActiveBadge: View {
+    var title: String = "ACTIVE GOAL"
+    var size: CGFloat = 8
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(Color.green)
+                .frame(width: size, height: size)
+                .shadow(color: Color.green, radius: 4)
+
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.green)
+                .tracking(0.6)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Color.green.opacity(0.12))
+        .cornerRadius(5)
+        .overlay(
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(Color.green.opacity(0.75), lineWidth: 1)
+        )
+        .shadow(color: Color.green.opacity(0.45), radius: 6)
     }
 }
 
@@ -221,7 +256,7 @@ struct CountdownDisplay: View {
                             .foregroundColor(.red)
                     }
                     if let targetDate {
-                        Text(targetDate.formattedYYMMDD)
+                        Text(targetDate.formattedDDMMYYYY)
                             .font(LKFont.mono)
                             .foregroundColor(.red.opacity(0.85))
                     }
@@ -235,7 +270,7 @@ struct CountdownDisplay: View {
                             .foregroundColor(.labelSecondary)
                     }
                     if let targetDate {
-                        Text("Due: \(targetDate.formattedYYMMDD)")
+                        Text("Due:  \(targetDate.formattedDDMMYYYY)")
                             .font(LKFont.mono)
                             .foregroundColor(.labelSecondary)
                     } else {

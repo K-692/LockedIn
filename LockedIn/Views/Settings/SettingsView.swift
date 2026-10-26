@@ -121,17 +121,20 @@ struct SettingsView: View {
         if let goal = vm.activeGoal {
             VStack(alignment: .leading, spacing: LKSpacing.md) {
                 HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(goal.name)
-                            .font(LKFont.headline)
-                            .foregroundColor(.labelPrimary)
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 6) {
+                            GlowingActiveBadge(title: "ACTIVE GOAL")
+                            Text(goal.name)
+                                .font(LKFont.headline)
+                                .foregroundColor(.labelPrimary)
+                        }
 
                         if let dl = goal.targetDeadline {
                             HStack(spacing: 6) {
                                 Text("Target Deadline:")
                                     .font(LKFont.caption)
                                     .foregroundColor(.labelSecondary)
-                                Text(dl.formattedYYMMDD)
+                                Text(dl.formattedDDMMYYYY)
                                     .font(LKFont.mono)
                                     .foregroundColor(.accentColor)
                             }
@@ -151,6 +154,7 @@ struct SettingsView: View {
                             .font(LKFont.body)
                     }
                     .buttonStyle(.bordered)
+                    .focusable(false)
                 }
 
                 Divider()
@@ -262,7 +266,7 @@ struct SettingsView: View {
                     Text("5-Second Menu Bar Alternation Active")
                         .font(LKFont.body)
                         .foregroundColor(.labelPrimary)
-                    Text("The menu bar item smoothly rotates every 5 seconds between your overall goal remaining time and your nearest upcoming target task (formatted as YY-MM-DD).")
+                    Text("The menu bar item smoothly rotates every 5 seconds between your overall goal deadline and your nearest target task date (formatted as DD-MM-YYYY, with task title kept private).")
                         .font(LKFont.caption)
                         .foregroundColor(.labelSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -292,7 +296,7 @@ struct SettingsView: View {
                 }
                 .onChange(of: localSettings.notificationFrequency) { _ in vm.updateSettings(localSettings) }
 
-                Toggle("Alert on task deadline (YY-MM-DD)", isOn: $localSettings.notifyOnTaskDeadline)
+                Toggle("Alert on task deadline (DD-MM-YYYY)", isOn: $localSettings.notifyOnTaskDeadline)
                     .onChange(of: localSettings.notifyOnTaskDeadline) { _ in vm.updateSettings(localSettings) }
 
                 Toggle("Alert when category milestone is completed", isOn: $localSettings.notifyOnMilestoneReached)

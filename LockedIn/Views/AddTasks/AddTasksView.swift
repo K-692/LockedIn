@@ -145,7 +145,7 @@ struct AddTasksView: View {
                     Text("\(Int(goal.overallProgress * 100))%")
                     if let dl = goal.targetDeadline {
                         Text("·")
-                        Text(dl.formattedYYMMDD)
+                        Text(dl.formattedDDMMYYYY)
                             .font(.system(size: 10, design: .monospaced))
                     }
                 }
@@ -155,6 +155,25 @@ struct AddTasksView: View {
 
             Spacer()
 
+            if vm.isGoalActive(goal) {
+                GlowingActiveBadge(title: "ACTIVE", size: 6)
+            } else {
+                Button {
+                    vm.setActiveGoal(goal)
+                } label: {
+                    Text("Make Active")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.green.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Set as Active Goal")
+            }
+
             // Quick Edit Goal Button
             Button {
                 activeSheet = .editGoal(goal)
@@ -162,24 +181,28 @@ struct AddTasksView: View {
                 Image(systemName: "pencil")
                     .font(.system(size: 11))
                     .foregroundColor(.labelSecondary)
+                    .padding(4)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(4)
             }
             .buttonStyle(.plain)
             .focusable(false)
             .help("Edit Goal")
 
-            // Context Menu
-            Menu {
-                Button("Set as Active") { vm.setActiveGoal(goal) }
-                Button("Edit Goal") { activeSheet = .editGoal(goal) }
-                Divider()
-                Button("Delete Goal", role: .destructive) { vm.deleteGoal(id: goal.id) }
+            // Direct Delete Goal Button (No 3 dots, no arrow)
+            Button {
+                vm.deleteGoal(id: goal.id)
             } label: {
-                Image(systemName: "ellipsis")
-                    .foregroundColor(.labelSecondary)
-                    .font(.system(size: 12))
+                Image(systemName: "trash")
+                    .font(.system(size: 11))
+                    .foregroundColor(.red.opacity(0.8))
+                    .padding(4)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(4)
             }
-            .menuStyle(.borderlessButton)
-            .frame(width: 18)
+            .buttonStyle(.plain)
+            .focusable(false)
+            .help("Delete Goal")
         }
         .padding(LKSpacing.sm)
         .background(
@@ -204,7 +227,29 @@ struct AddTasksView: View {
                             .font(LKFont.title2)
                             .foregroundColor(.labelPrimary)
 
-                        // Explicit Edit Goal Button
+                        if vm.isGoalActive(goal) {
+                            GlowingActiveBadge(title: "ACTIVE GOAL")
+                        } else {
+                            Button {
+                                vm.setActiveGoal(goal)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle")
+                                    Text("Make Active")
+                                }
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.green.opacity(0.12))
+                                .cornerRadius(5)
+                            }
+                            .buttonStyle(.plain)
+                            .focusable(false)
+                            .help("Set this as your active goal")
+                        }
+
+                        // Explicit Edit Goal Button (Neutral styling, no blue border)
                         Button {
                             activeSheet = .editGoal(goal)
                         } label: {
@@ -214,20 +259,35 @@ struct AddTasksView: View {
                                 Text("Edit Goal")
                                     .font(.system(size: 11, weight: .medium))
                             }
-                            .foregroundColor(.accentColor)
-                            .padding(.horizontal, 8)
+                            .foregroundColor(.labelSecondary)
+                            .padding(.horizontal, 7)
                             .padding(.vertical, 3)
-                            .background(Color.accentColor.opacity(0.1))
+                            .background(Color(NSColor.controlColor))
                             .cornerRadius(5)
                         }
                         .buttonStyle(.plain)
                         .focusable(false)
                         .help("Edit Goal Name and Deadline")
+
+                        // Direct Delete Goal Button (No 3 dots, no arrow)
+                        Button {
+                            vm.deleteGoal(id: goal.id)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundColor(.red.opacity(0.8))
+                                .padding(5)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(5)
+                        }
+                        .buttonStyle(.plain)
+                        .focusable(false)
+                        .help("Delete Goal")
                     }
 
                     if let dl = goal.targetDeadline {
                         HStack(spacing: 4) {
-                            Text("Target Deadline: \(dl.formattedYYMMDD)")
+                            Text("Target Deadline: \(dl.formattedDDMMYYYY)")
                             if let days = goal.daysRemaining {
                                 Text("(\(days) days remaining)")
                                     .foregroundColor(days < 14 ? .orange : .labelSecondary)
@@ -337,24 +397,35 @@ struct AddTasksView: View {
                 .focusable(false)
                 .help("Add detailed task with deadline and subtasks")
 
-                // Category Menu
-                Menu {
-                    Button("Add Task...") {
-                        activeSheet = .addTask(goalId: goalId, categoryId: category.id)
-                    }
-                    Button("Edit Category...") {
-                        activeSheet = .editCategory(goalId: goalId, category: category)
-                    }
-                    Divider()
-                    Button("Delete Category", role: .destructive) {
-                        vm.deleteCategory(id: category.id, from: goalId)
-                    }
+                // Edit Category Button (No 3 dots, no arrow)
+                Button {
+                    activeSheet = .editCategory(goalId: goalId, category: category)
                 } label: {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: "pencil")
+                        .font(.system(size: 11))
                         .foregroundColor(.labelSecondary)
+                        .padding(5)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(5)
                 }
-                .menuStyle(.borderlessButton)
-                .frame(width: 20)
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Edit Category")
+
+                // Direct Delete Category Button (No 3 dots, no arrow)
+                Button {
+                    vm.deleteCategory(id: category.id, from: goalId)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 11))
+                        .foregroundColor(.red.opacity(0.8))
+                        .padding(5)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Delete Category")
             }
             .padding(LKSpacing.sm)
             .background(Color(NSColor.controlBackgroundColor))
@@ -479,7 +550,7 @@ struct TaskRowView: View {
                 Spacer()
 
                 if let dl = task.deadline {
-                    Text(dl.formattedYYMMDD)
+                    Text(dl.formattedDDMMYYYY)
                         .font(LKFont.mono)
                         .foregroundColor(task.isOverdue ? .red : .labelSecondary)
                 }
@@ -487,29 +558,50 @@ struct TaskRowView: View {
                 StatusBadge(status: task.status)
                 PriorityBadge(priority: task.priority)
 
+                // Button to make task active
+                Button {
+                    vm.toggleActiveTask(task)
+                } label: {
+                    Image(systemName: vm.isTaskActive(task) ? "target" : "scope")
+                        .font(.system(size: 12))
+                        .foregroundColor(vm.isTaskActive(task) ? .green : .labelSecondary.opacity(0.5))
+                        .padding(4)
+                        .background(vm.isTaskActive(task) ? Color.green.opacity(0.15) : Color.clear)
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help(vm.isTaskActive(task) ? "Active Task (Click to unset)" : "Set as Active Task")
+
+                // Edit Task Button
                 Button {
                     onEdit()
                 } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 11))
                         .foregroundColor(.labelSecondary)
+                        .padding(4)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(4)
                 }
                 .buttonStyle(.plain)
                 .focusable(false)
                 .help("Edit task")
 
-                Menu {
-                    Button("Edit Task...") { onEdit() }
-                    Divider()
-                    Button("Delete Task", role: .destructive) {
-                        vm.deleteTask(id: task.id, from: categoryId, goalId: goalId)
-                    }
+                // Direct Delete Task Button (No 3 dots, no arrow)
+                Button {
+                    vm.deleteTask(id: task.id, from: categoryId, goalId: goalId)
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(.labelSecondary)
+                    Image(systemName: "trash")
+                        .font(.system(size: 11))
+                        .foregroundColor(.red.opacity(0.8))
+                        .padding(4)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(4)
                 }
-                .menuStyle(.borderlessButton)
-                .frame(width: 20)
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Delete task")
             }
             .padding(.horizontal, LKSpacing.md)
             .padding(.vertical, LKSpacing.sm)

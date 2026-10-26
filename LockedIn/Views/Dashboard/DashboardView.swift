@@ -37,11 +37,9 @@ struct DashboardView: View {
     private func goalHeaderCard(goal: Goal) -> some View {
         HStack(alignment: .top, spacing: LKSpacing.md) {
             VStack(alignment: .leading, spacing: LKSpacing.xs) {
-                HStack(spacing: 6) {
-                    Text("ACTIVE GOAL")
-                        .font(LKFont.caption)
-                        .foregroundColor(.labelSecondary)
-                        .tracking(0.8)
+                HStack(spacing: 8) {
+                    // Glowing Green Active Goal Badge
+                    GlowingActiveBadge(title: "ACTIVE GOAL")
 
                     Button {
                         editingGoal = goal
@@ -52,13 +50,14 @@ struct DashboardView: View {
                             Text("Edit")
                                 .font(.system(size: 11, weight: .medium))
                         }
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.labelSecondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.1))
+                        .background(Color(NSColor.controlColor))
                         .cornerRadius(4)
                     }
                     .buttonStyle(.plain)
+                    .focusable(false)
                     .help("Edit Goal Name & Target Deadline")
                 }
 
@@ -68,7 +67,7 @@ struct DashboardView: View {
                     .lineLimit(2)
 
                 if let deadline = goal.targetDeadline {
-                    Label("Target: \(deadline.formattedYYMMDD)", systemImage: "calendar")
+                    Label("Target: \(deadline.formattedDDMMYYYY)", systemImage: "calendar")
                         .font(LKFont.caption)
                         .foregroundColor(.labelSecondary)
                 }
@@ -146,7 +145,15 @@ struct DashboardView: View {
 
     private func activeTaskCard(goal: Goal) -> some View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
-            SectionHeader(title: "Active Task")
+            HStack(spacing: 8) {
+                Text("ACTIVE TASK")
+                    .font(LKFont.headline)
+                    .foregroundColor(.labelSecondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+
+                GlowingActiveBadge(title: "ACTIVE", size: 6)
+            }
 
             if let task = vm.nextUpcomingTask {
                 HStack(spacing: LKSpacing.md) {
@@ -170,7 +177,7 @@ struct DashboardView: View {
                             StatusBadge(status: task.status)
                             PriorityBadge(priority: task.priority)
                             if let dl = task.deadline {
-                                Label("Due: \(dl.formattedYYMMDD)", systemImage: "calendar")
+                                Label("Due: \(dl.formattedDDMMYYYY)", systemImage: "calendar")
                                     .font(LKFont.caption)
                                     .foregroundColor(task.isOverdue ? .red : .labelSecondary)
                             }
@@ -197,15 +204,12 @@ struct DashboardView: View {
                         .cornerRadius(6)
                     }
                     .buttonStyle(.plain)
+                    .focusable(false)
                     .help("Toggle task completion")
                 }
                 .padding(LKSpacing.md)
-                .background(Color.accentColor.opacity(0.05))
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
                 .cornerRadius(LKRadius.md)
-                .overlay(
-                    RoundedRectangle(cornerRadius: LKRadius.md)
-                        .stroke(Color(NSColor.separatorColor).opacity(0.25), lineWidth: 1)
-                )
             } else {
                 Text("All tasks completed! 🎉")
                     .font(LKFont.body)
@@ -240,6 +244,18 @@ struct DashboardView: View {
     @ViewBuilder
     private func upcomingTaskRow(task: Task) -> some View {
         HStack(spacing: LKSpacing.sm) {
+            // Button to set as active task
+            Button {
+                vm.toggleActiveTask(task)
+            } label: {
+                Image(systemName: vm.isTaskActive(task) ? "target" : "scope")
+                    .font(.system(size: 13))
+                    .foregroundColor(vm.isTaskActive(task) ? .green : .labelSecondary.opacity(0.4))
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .help(vm.isTaskActive(task) ? "Active Task (Click to unset)" : "Set as Active Task")
+
             Image(systemName: task.isMilestone ? "flag.fill" : task.status.icon)
                 .foregroundColor(task.isMilestone ? .yellow : .labelSecondary)
                 .frame(width: 16)
@@ -252,7 +268,7 @@ struct DashboardView: View {
             Spacer()
 
             if let dl = task.deadline {
-                Text(dl.formattedYYMMDD)
+                Text(dl.formattedDDMMYYYY)
                     .font(LKFont.caption)
                     .foregroundColor(task.isOverdue ? .red : .labelSecondary)
             }
@@ -281,7 +297,7 @@ struct DashboardView: View {
                             .strikethrough(m.status == .completed)
                         Spacer()
                         if let dl = m.deadline {
-                            Text(dl.formattedYYMMDD)
+                            Text(dl.formattedDDMMYYYY)
                                 .font(LKFont.caption)
                                 .foregroundColor(.labelSecondary)
                         }

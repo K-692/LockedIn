@@ -35,10 +35,10 @@ struct GoalFormSheet: View {
                                    displayedComponents: .date)
 
                         HStack {
-                            Text("Selected Target Date:")
+                            Text("Selected Target Date (DD-MM-YYYY):")
                                 .font(LKFont.caption)
                                 .foregroundColor(.labelSecondary)
-                            Text(targetDeadline.formattedYYMMDD)
+                            Text(targetDeadline.formattedDDMMYYYY)
                                 .font(LKFont.mono)
                                 .foregroundColor(.accentColor)
                         }
@@ -226,10 +226,10 @@ struct TaskFormSheet: View {
                                    displayedComponents: .date)
 
                         HStack {
-                            Text("Target Date:")
+                            Text("Target Date (DD-MM-YYYY):")
                                 .font(LKFont.caption)
                                 .foregroundColor(.labelSecondary)
-                            Text(deadline.formattedYYMMDD)
+                            Text(deadline.formattedDDMMYYYY)
                                 .font(LKFont.mono)
                                 .foregroundColor(.accentColor)
                         }

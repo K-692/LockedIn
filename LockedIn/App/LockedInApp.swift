@@ -50,15 +50,11 @@ struct LockedInApp: App {
     private var menuBarLabel: some View {
         HStack(spacing: 5) {
             if vm.showNearestTaskInMenuBar, let task = vm.nearestTargetTask, let dl = task.targetDeadline {
-                // Alternating View A (every 5 seconds): Most Near Target Task
+                // Alternating View A (every 5 seconds): Most Near Target Task (Date only, NEVER reveal task name)
                 Image(systemName: "checklist")
                     .font(.system(size: 11, weight: .semibold))
-                Text(task.title)
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
-                    .frame(maxWidth: 130, alignment: .leading)
-                Text(dl.formattedYYMMDD)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                Text(dl.formattedDDMMYYYY)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
                 if let days = task.daysRemaining {
                     Text("(\(days)d)")
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -70,7 +66,7 @@ struct LockedInApp: App {
 
                 if let goal = vm.activeGoal {
                     if let dl = goal.targetDeadline {
-                        Text(dl.formattedYYMMDD)
+                        Text(dl.formattedDDMMYYYY)
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                     }
 
@@ -95,16 +91,47 @@ struct LockedInApp: App {
 
 // MARK: - AppDelegate
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Prevent macOS from terminating background app when windows close
+        ProcessInfo.processInfo.disableAutomaticTermination("Keep menu bar icon always active")
+
         // Request notification permission on first launch
         _Concurrency.Task {
             await NotificationService.requestAuthorization()
+        }
+
+        // Attach window delegate to all application windows
+        DispatchQueue.main.async {
+            for window in NSApp.windows where !(window is NSPanel) {
+                window.delegate = self
+            }
         }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         // Keep running as a menu bar app even when main window is closed
         return false
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            AppDelegate.reopenMainWindow()
+        }
+        return true
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // Hide window instead of destroying so menu bar item stays active
+        sender.orderOut(nil)
+        return false
+    }
+
+    static func reopenMainWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = NSApp.windows.first(where: { !($0 is NSPanel) }) {
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+        }
     }
 }

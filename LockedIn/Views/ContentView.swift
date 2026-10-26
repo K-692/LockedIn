@@ -81,7 +81,7 @@ struct ContentView: View {
 
                         HStack(spacing: 4) {
                             if let dl = goal.targetDeadline {
-                                Text(dl.formattedYYMMDD)
+                                Text(dl.formattedDDMMYYYY)
                                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                                     .foregroundColor(.labelSecondary)
                             }

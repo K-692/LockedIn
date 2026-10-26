@@ -76,7 +76,7 @@ struct MenuBarView: View {
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
                         .foregroundColor(days < 14 ? .orange : .labelPrimary)
                     if let dl = goal.targetDeadline {
-                        Text(dl.formattedYYMMDD)
+                        Text(dl.formattedDDMMYYYY)
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(.labelSecondary)
                     }
@@ -90,17 +90,18 @@ struct MenuBarView: View {
 
     private var footerBar: some View {
         HStack {
-            Button("Open App") {
-                NSApp.activate(ignoringOtherApps: true)
-                if let window = NSApp.windows.first { window.makeKeyAndOrderFront(nil) }
+            Button("Open LockedIn") {
+                AppDelegate.reopenMainWindow()
             }
             .buttonStyle(.borderless)
+            .focusable(false)
             .font(LKFont.caption)
 
             Spacer()
 
             Button("Quit") { NSApp.terminate(nil) }
                 .buttonStyle(.borderless)
+                .focusable(false)
                 .font(LKFont.caption)
                 .foregroundColor(.labelSecondary)
         }
@@ -121,7 +122,7 @@ struct MenuBarView: View {
                         Text(countdownLabel(goal))
                             .font(LKFont.headline)
                         if let dl = goal.targetDeadline {
-                            Text("Target Date: \(dl.formattedYYMMDD)")
+                            Text("Target Date: \(dl.formattedDDMMYYYY)")
                                 .font(LKFont.caption)
                                 .foregroundColor(.labelSecondary)
                         }
@@ -148,7 +149,7 @@ struct MenuBarView: View {
                                 .lineLimit(2)
                             Spacer()
                             if let dl = task.deadline {
-                                Text(dl.formattedYYMMDD)
+                                Text(dl.formattedDDMMYYYY)
                                     .font(LKFont.caption)
                                     .foregroundColor(task.isOverdue ? .red : .labelSecondary)
                             }
@@ -234,7 +235,7 @@ struct MenuBarView: View {
                             Spacer()
 
                             if let dl = task.deadline {
-                                Text(dl.formattedYYMMDD)
+                                Text(dl.formattedDDMMYYYY)
                                     .font(.system(size: 10, design: .monospaced))
                                     .foregroundColor(task.isOverdue ? .red : .labelSecondary)
                             }
