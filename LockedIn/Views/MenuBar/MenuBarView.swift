@@ -6,7 +6,6 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var vm: AppViewModel
-    @State private var selectedTab: Int = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,10 +15,21 @@ struct MenuBarView: View {
             Divider()
 
             // 2-Tab Switcher (Dashboard & Tasks)
-            HStack(spacing: 4) {
-                tabButton("Dashboard", tag: 0, icon: "square.grid.2x2.fill")
-                tabButton("Tasks", tag: 1, icon: "checklist")
+            let pendingCount = vm.activeGoal?.allTasks.filter { $0.status != .completed }.count ?? 0
+
+            Picker("", selection: Binding<Int>(
+                get: { vm.menuBarTab },
+                set: { newTab in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        vm.menuBarTab = newTab
+                    }
+                }
+            )) {
+                Label("Dashboard", systemImage: "square.grid.2x2.fill").tag(0)
+                Label(pendingCount > 0 ? "Tasks (\(pendingCount))" : "Tasks", systemImage: "checklist").tag(1)
             }
+            .pickerStyle(.segmented)
+            .labelsHidden()
             .padding(.horizontal, LKSpacing.sm)
             .padding(.vertical, 6)
 
@@ -28,7 +38,7 @@ struct MenuBarView: View {
             // Tab Content
             ScrollView {
                 Group {
-                    switch selectedTab {
+                    switch vm.menuBarTab {
                     case 0: dashboardContent
                     case 1: tasksContent
                     default: dashboardContent
@@ -91,6 +101,11 @@ struct MenuBarView: View {
     private var footerBar: some View {
         HStack {
             Button("Open LockedIn") {
+                if vm.menuBarTab == 1 {
+                    vm.selectedTab = 1
+                } else {
+                    vm.selectedTab = 0
+                }
                 AppDelegate.reopenMainWindow()
             }
             .buttonStyle(.borderless)
@@ -255,26 +270,6 @@ struct MenuBarView: View {
     }
 
     // MARK: - Helpers
-
-    private func tabButton(_ title: String, tag: Int, icon: String) -> some View {
-        Button {
-            selectedTab = tag
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                Text(title)
-                    .font(.system(size: 12, weight: selectedTab == tag ? .semibold : .regular))
-            }
-            .foregroundColor(selectedTab == tag ? .labelPrimary : .labelSecondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 5)
-            .background(selectedTab == tag ? Color(NSColor.controlBackgroundColor) : Color.clear)
-            .cornerRadius(LKRadius.sm)
-        }
-        .buttonStyle(.plain)
-        .focusable(false)
-    }
 
     private func countdownLabel(_ goal: Goal) -> String {
         guard let days = goal.daysRemaining else { return "No deadline" }

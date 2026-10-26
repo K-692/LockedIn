@@ -25,6 +25,9 @@ final class AppViewModel: ObservableObject {
     // false = overall goal remaining time; true = nearest target task
     @Published var showNearestTaskInMenuBar: Bool = false
 
+    // Menu Bar Popover Active Tab (0 = Dashboard, 1 = Tasks)
+    @Published var menuBarTab: Int = 0
+
     // MARK: - Private
 
     private var menuBarTimer: Timer?

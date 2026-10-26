@@ -60,7 +60,7 @@ Goal ──▶ Categories ──▶ Tasks & Subtasks ──▶ Live DD-MM-YYYY C
 LockedIn maintains a clean, distraction-free environment organized into strictly three primary views:
 1. **Dashboard**: Glowing green active goal card, live target countdown (`DD-MM-YYYY`), overall progress ring, nearest upcoming task card, and milestone tracker. No accidental blue startup focus squares.
 2. **Add Tasks**: Structured 260pt goal sidebar with organized multi-row cards (Title + Active badge/button, full-width stats row preventing text wrapping, and direct 1-click **Edit** and **Delete** buttons), category accordions, and **instant inline task quick-add** (no dropdown arrows or 3-dots menus!).
-3. **Settings**: Restructured preferences — active goal & deadline editing, System/Light/Dark appearance switcher (without intrusive blue borders), 5-second menu bar ticker configuration, custom notifications, launch-at-login, and JSON data backup/restore.
+3. **Settings**: Restructured preferences — active goal & deadline editing with single-line Switch Active Goal dropdown, System/Light/Dark appearance switcher (without intrusive blue borders), 5-second menu bar ticker configuration, custom notifications, launch-at-login, and JSON data backup/restore.
 
 ### ⏱️ Persistent, Always-On Menu Bar Extra
 - The menu bar icon **stays always on even if the main application window is closed**.
@@ -69,7 +69,7 @@ LockedIn maintains a clean, distraction-free environment organized into strictly
 ### 🔄 5-Second Alternating Menu Bar Ticker (Private Date-Only)
 - **Phase A (5 seconds)**: Displays overall goal target deadline (`DD-MM-YYYY`), remaining days (`(142d)`), and progress percentage.
 - **Phase B (5 seconds)**: Displays the **date for the recent task with an icon** (`[checklist] DD-MM-YYYY (Xd)`). **The task title is kept strictly private and never exposed in the menu bar.**
-- Quick popover access to a mini-dashboard and upcoming tasks.
+- Quick popover access to a mini-dashboard and upcoming tasks with a reliable native segmented switcher (**Dashboard** vs **Tasks**).
 
 ### 📅 Uniform `DD-MM-YYYY` Date Formatting Everywhere
 Dates across all screens, countdown badges, task rows, form sheets, and menu bar extras are strictly formatted in the clean, international `DD-MM-YYYY` standard.

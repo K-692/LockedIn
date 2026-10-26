@@ -187,10 +187,12 @@ struct SettingsView: View {
                 if vm.goals.count > 1 {
                     Divider()
 
-                    VStack(alignment: .leading, spacing: LKSpacing.xs) {
+                    HStack(alignment: .center) {
                         Text("Switch Active Goal")
-                            .font(LKFont.caption)
-                            .foregroundColor(.labelSecondary)
+                            .font(LKFont.body)
+                            .foregroundColor(.labelPrimary)
+
+                        Spacer()
 
                         Picker("", selection: Binding<UUID>(
                             get: { vm.activeGoalId ?? UUID() },
@@ -201,7 +203,7 @@ struct SettingsView: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        .frame(maxWidth: 300)
+                        .frame(minWidth: 160, maxWidth: 260)
                     }
                 }
             }

@@ -96,7 +96,7 @@ LockedIn enforces exactly three primary navigation tabs:
 - **Task Row Controls**: Status toggle, milestone flag, deadline (`DD-MM-YYYY`), status badge, priority badge, and direct edit & delete trash buttons.
 
 ### 3.3 Tab 3: Settings (`SettingsView`)
-- **Active Goal Management**: Displays the glowing green active goal badge with direct deadline editing and goal switching.
+- **Active Goal Management**: Displays the glowing green active goal badge with direct deadline editing and inline goal switching (with "Switch Active Goal" and dropdown menu aligned cleanly on the exact same horizontal line).
 - **Appearance Selector**: Native **System**, **Light**, and **Dark** selector with zero high-contrast blue borders.
 - **Menu Bar Ticker Controls**: Dual-phase alternating configuration (overall goal deadline vs nearest task date).
 - **System & Lifecycle**: Launch at Login, automatic termination prevention, and offline JSON export/restore.
@@ -168,6 +168,7 @@ Enforced across:
 | **Phase 4** | Refinement & Polish | Embedded LockedIn app icon, removed focus timer, removed tab blue borders, enabled inline task creation. |
 | **Phase 5** | Strict Enhancements | Standardized `DD-MM-YYYY` everywhere, removed all 3-dots/arrow menus with direct delete buttons, added glowing green effect for active goals, ensured always-on menu bar lifecycle, and restricted menu bar task ticker to date-only. |
 | **Phase 6** | Goal-Exclusive Active Semantics & Sidebar Layout Restructuring | Overhauled Add Tasks goal sidebar with 260pt multi-row card hierarchy (Title + Active Badge on top, dedicated stats line, bottom-aligned Edit/Delete), fixed `GlowingActiveBadge` to prevent text splitting, and completely removed task-level active buttons to maintain unambiguous goal-only active state semantics. |
+| **Phase 7** | Menu Bar Popover Segmented Switcher & Settings Alignment | Replaced transient menu bar tab state with persistent `vm.menuBarTab` and native `NSSegmentedControl` (`Picker(.segmented)`), fixing unresponsive Dashboard/Tasks switching in the menu bar popover; aligned "Switch Active Goal" and the dropdown menu onto the exact same horizontal line in Settings. |
 
 ---
 
