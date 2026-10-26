@@ -1,5 +1,6 @@
 // MARK: - SettingsView.swift
-// Tab 3: Target date, appearance, notifications, menu bar, timer, launch, backup/restore.
+// Settings & Preferences: Goal management, appearance, menu bar, notifications, launch, backup.
+// Completely domain-neutral, organized layout, no focus timer, zero blue borders, YY-MM-DD dates.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -11,49 +12,52 @@ struct SettingsView: View {
     @State private var showImportPanel: Bool = false
     @State private var showRestoreConfirm: Bool = false
     @State private var exportDocument: BackupDocument? = nil
+    @State private var editingGoal: Goal? = nil
 
     var body: some View {
         ScrollView {
-            VStack(spacing: LKSpacing.lg) {
-                // Target Deadline
-                settingsSection("Target Deadline", icon: "calendar") {
-                    goalDeadlineSettings
+            VStack(spacing: LKSpacing.xl) {
+                // App Branding Header with Logo
+                appHeaderCard
+
+                // 1. Goal Management & Target Deadline (Editable)
+                settingsSection("Active Goal & Target Deadline", icon: "target") {
+                    goalSettingsContent
                 }
 
-                // Appearance
+                // 2. Appearance
                 settingsSection("Appearance", icon: "paintbrush") {
-                    appearanceSettings
+                    appearanceSettingsContent
                 }
 
-                // Notifications
-                settingsSection("Notifications", icon: "bell") {
-                    notificationSettings
+                // 3. Menu Bar Extra
+                settingsSection("Menu Bar Extra", icon: "menubar.rectangle") {
+                    menuBarSettingsContent
                 }
 
-                // Menu Bar
-                settingsSection("Menu Bar", icon: "menubar.rectangle") {
-                    menuBarSettings
+                // 4. Notifications
+                settingsSection("Notifications & Alerts", icon: "bell.badge") {
+                    notificationSettingsContent
                 }
 
-                // Focus Timer
-                settingsSection("Focus Timer", icon: "timer") {
-                    timerSettings
+                // 5. System Integration
+                settingsSection("System & Startup", icon: "gearshape") {
+                    systemSettingsContent
                 }
 
-                // Launch at Login
-                settingsSection("System", icon: "gear") {
-                    systemSettings
-                }
-
-                // Backup & Restore
-                settingsSection("Backup & Restore", icon: "externaldrive") {
-                    backupSettings
+                // 6. Data Backup & Storage
+                settingsSection("Data Management", icon: "externaldrive") {
+                    backupSettingsContent
                 }
             }
-            .padding(LKSpacing.lg)
+            .padding(LKSpacing.xl)
+            .frame(maxWidth: 680)
         }
-        .frame(maxWidth: 640, alignment: .center)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .sheet(item: $editingGoal) { goal in
+            GoalFormSheet(editingGoal: goal)
+                .environmentObject(vm)
+        }
         .onAppear {
             localSettings = vm.settings
         }
@@ -80,208 +84,318 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Goal Deadline
+    // MARK: - App Header Card
 
-    @ViewBuilder
-    private var goalDeadlineSettings: some View {
-        if let goal = vm.activeGoal {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(goal.name)
-                        .font(LKFont.headline)
-                    if let dl = goal.targetDeadline {
-                        Text("Target: \(dl.formatted(date: .long, time: .omitted))")
-                            .font(LKFont.caption)
-                            .foregroundColor(.labelSecondary)
-                    } else {
-                        Text("No target deadline set")
-                            .font(LKFont.caption)
-                            .foregroundColor(.labelSecondary)
-                    }
-                }
-                Spacer()
-                CountdownDisplay(
-                    daysRemaining: goal.daysRemaining,
-                    isOverdue: goal.isOverdue
-                )
-            }
+    private var appHeaderCard: some View {
+        HStack(spacing: LKSpacing.md) {
+            AppIconView(size: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
 
-            Divider()
-
-            DeadlineEditorRow(goal: goal)
-                .environmentObject(vm)
-
-        } else {
-            Text("No active goal. Add a goal in the Add Tasks tab.")
-                .font(LKFont.body)
-                .foregroundColor(.labelSecondary)
-        }
-    }
-
-    // MARK: - Appearance
-
-    private var appearanceSettings: some View {
-        HStack(spacing: LKSpacing.sm) {
-            ForEach(AppearancePreference.allCases, id: \.self) { pref in
-                AppearanceButton(
-                    preference: pref,
-                    isSelected: localSettings.appearance == pref
-                ) {
-                    localSettings.appearance = pref
-                    vm.updateSettings(localSettings)
-                }
-            }
-        }
-    }
-
-    // MARK: - Notifications
-
-    @ViewBuilder
-    private var notificationSettings: some View {
-        Toggle("Enable Notifications", isOn: $localSettings.notificationsEnabled)
-            .onChange(of: localSettings.notificationsEnabled) { _ in vm.updateSettings(localSettings) }
-
-        if localSettings.notificationsEnabled {
-            Divider()
-            Picker("Frequency", selection: $localSettings.notificationFrequency) {
-                ForEach(NotificationFrequency.allCases, id: \.self) { f in
-                    Text(f.rawValue).tag(f)
-                }
-            }
-            .onChange(of: localSettings.notificationFrequency) { _ in vm.updateSettings(localSettings) }
-
-            Toggle("Notify on task deadline", isOn: $localSettings.notifyOnTaskDeadline)
-                .onChange(of: localSettings.notifyOnTaskDeadline) { _ in vm.updateSettings(localSettings) }
-
-            Toggle("Notify when milestone reached", isOn: $localSettings.notifyOnMilestoneReached)
-                .onChange(of: localSettings.notifyOnMilestoneReached) { _ in vm.updateSettings(localSettings) }
-
-            Toggle("Notify when deadline is approaching", isOn: $localSettings.notifyOnGoalDeadlineApproach)
-                .onChange(of: localSettings.notifyOnGoalDeadlineApproach) { _ in vm.updateSettings(localSettings) }
-
-            if localSettings.notifyOnGoalDeadlineApproach {
-                Stepper(
-                    "Warn \(localSettings.goalDeadlineWarningDays) days before",
-                    value: $localSettings.goalDeadlineWarningDays,
-                    in: 1...90
-                )
-                .onChange(of: localSettings.goalDeadlineWarningDays) { _ in vm.updateSettings(localSettings) }
-            }
-        }
-    }
-
-    // MARK: - Menu Bar
-
-    @ViewBuilder
-    private var menuBarSettings: some View {
-        Toggle("Show countdown in menu bar", isOn: $localSettings.showCountdownInMenuBar)
-            .onChange(of: localSettings.showCountdownInMenuBar) { _ in vm.updateSettings(localSettings) }
-        Toggle("Show overall progress in menu bar", isOn: $localSettings.showProgressInMenuBar)
-            .onChange(of: localSettings.showProgressInMenuBar) { _ in vm.updateSettings(localSettings) }
-    }
-
-    // MARK: - Timer
-
-    @ViewBuilder
-    private var timerSettings: some View {
-        Stepper(
-            "Focus: \(localSettings.timerSettings.focusDurationMinutes) min",
-            value: $localSettings.timerSettings.focusDurationMinutes,
-            in: 1...120
-        )
-        .onChange(of: localSettings.timerSettings.focusDurationMinutes) { _ in vm.updateSettings(localSettings) }
-
-        Stepper(
-            "Short break: \(localSettings.timerSettings.shortBreakMinutes) min",
-            value: $localSettings.timerSettings.shortBreakMinutes,
-            in: 1...30
-        )
-        .onChange(of: localSettings.timerSettings.shortBreakMinutes) { _ in vm.updateSettings(localSettings) }
-
-        Stepper(
-            "Long break: \(localSettings.timerSettings.longBreakMinutes) min",
-            value: $localSettings.timerSettings.longBreakMinutes,
-            in: 5...60
-        )
-        .onChange(of: localSettings.timerSettings.longBreakMinutes) { _ in vm.updateSettings(localSettings) }
-
-        Stepper(
-            "Sessions until long break: \(localSettings.timerSettings.sessionsUntilLongBreak)",
-            value: $localSettings.timerSettings.sessionsUntilLongBreak,
-            in: 2...8
-        )
-        .onChange(of: localSettings.timerSettings.sessionsUntilLongBreak) { _ in vm.updateSettings(localSettings) }
-
-        Divider()
-
-        Toggle("Auto-start break", isOn: $localSettings.timerSettings.autoStartBreak)
-            .onChange(of: localSettings.timerSettings.autoStartBreak) { _ in vm.updateSettings(localSettings) }
-        Toggle("Notify on session complete", isOn: $localSettings.timerSettings.notifyOnComplete)
-            .onChange(of: localSettings.timerSettings.notifyOnComplete) { _ in vm.updateSettings(localSettings) }
-    }
-
-    // MARK: - System
-
-    @ViewBuilder
-    private var systemSettings: some View {
-        Toggle("Launch at Login", isOn: $localSettings.launchAtLogin)
-            .onChange(of: localSettings.launchAtLogin) { _ in
-                vm.updateSettings(localSettings)
-                // Launch-at-login is handled via SMAppService in macOS 13+
-                // Hook: ServiceManagement.SMAppService.mainApp
-            }
-    }
-
-    // MARK: - Backup & Restore
-
-    @ViewBuilder
-    private var backupSettings: some View {
-        HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Export Backup")
-                    .font(LKFont.body)
-                Text("Save all goals and settings to a JSON file.")
+                HStack(spacing: LKSpacing.sm) {
+                    Text("LockedIn")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.labelPrimary)
+                    Text("v1.0.0 (Universal)")
+                        .font(LKFont.caption)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(NSColor.quaternaryLabelColor))
+                        .cornerRadius(LKRadius.sm)
+                }
+                Text("Focus on what matters. Domain-neutral goal & progress tracking.")
                     .font(LKFont.caption)
                     .foregroundColor(.labelSecondary)
             }
             Spacer()
-            Button("Export…") {
-                if let data = PersistenceService.exportBackup() {
-                    exportDocument = BackupDocument(data: data)
-                    showExportPanel = true
+        }
+        .padding(LKSpacing.md)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(LKRadius.md)
+    }
+
+    // MARK: - 1. Goal Settings Content
+
+    @ViewBuilder
+    private var goalSettingsContent: some View {
+        if let goal = vm.activeGoal {
+            VStack(alignment: .leading, spacing: LKSpacing.md) {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(goal.name)
+                            .font(LKFont.headline)
+                            .foregroundColor(.labelPrimary)
+
+                        if let dl = goal.targetDeadline {
+                            HStack(spacing: 6) {
+                                Text("Target Deadline:")
+                                    .font(LKFont.caption)
+                                    .foregroundColor(.labelSecondary)
+                                Text(dl.formattedYYMMDD)
+                                    .font(LKFont.mono)
+                                    .foregroundColor(.accentColor)
+                            }
+                        } else {
+                            Text("No target deadline set")
+                                .font(LKFont.caption)
+                                .foregroundColor(.labelSecondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    Button {
+                        editingGoal = goal
+                    } label: {
+                        Label("Edit Goal", systemImage: "pencil")
+                            .font(LKFont.body)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                Divider()
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Remaining Time")
+                            .font(LKFont.caption)
+                            .foregroundColor(.labelSecondary)
+                        if let days = goal.daysRemaining {
+                            Text("\(days) days remaining")
+                                .font(LKFont.headline)
+                                .foregroundColor(goal.isOverdue ? .red : .labelPrimary)
+                        } else {
+                            Text("No deadline set")
+                                .font(LKFont.body)
+                                .foregroundColor(.labelSecondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    CountdownDisplay(
+                        daysRemaining: goal.daysRemaining,
+                        targetDate: goal.targetDeadline,
+                        isOverdue: goal.isOverdue
+                    )
+                }
+
+                if vm.goals.count > 1 {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: LKSpacing.xs) {
+                        Text("Switch Active Goal")
+                            .font(LKFont.caption)
+                            .foregroundColor(.labelSecondary)
+
+                        Picker("", selection: Binding<UUID>(
+                            get: { vm.activeGoalId ?? UUID() },
+                            set: { vm.setActiveGoalId($0) }
+                        )) {
+                            ForEach(vm.goals) { g in
+                                Text(g.name).tag(g.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 300)
+                    }
                 }
             }
-            .buttonStyle(.bordered)
-        }
-
-        Divider()
-
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Restore Backup")
+        } else {
+            VStack(alignment: .leading, spacing: LKSpacing.sm) {
+                Text("No active goal selected.")
                     .font(LKFont.body)
-                Text("Overwrite current data from a backup file.")
-                    .font(LKFont.caption)
-                    .foregroundColor(.red.opacity(0.8))
+                    .foregroundColor(.labelSecondary)
+
+                Button {
+                    editingGoal = Goal(name: "My Goal")
+                } label: {
+                    Label("Create First Goal", systemImage: "plus.circle")
+                }
+                .buttonStyle(.borderedProminent)
             }
-            Spacer()
-            Button("Restore…") { showRestoreConfirm = true }
-                .buttonStyle(.bordered)
-                .foregroundColor(.red)
-        }
-        .confirmationDialog(
-            "Restore Backup",
-            isPresented: $showRestoreConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Restore", role: .destructive) { showImportPanel = true }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will replace all current data. This cannot be undone.")
         }
     }
 
-    // MARK: - Section Builder
+    // MARK: - 2. Appearance Settings Content
+
+    private var appearanceSettingsContent: some View {
+        VStack(alignment: .leading, spacing: LKSpacing.sm) {
+            Text("Interface Theme")
+                .font(LKFont.caption)
+                .foregroundColor(.labelSecondary)
+
+            HStack(spacing: LKSpacing.sm) {
+                ForEach(AppearancePreference.allCases, id: \.self) { pref in
+                    AppearanceCleanButton(
+                        preference: pref,
+                        isSelected: localSettings.appearance == pref
+                    ) {
+                        localSettings.appearance = pref
+                        vm.updateSettings(localSettings)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - 3. Menu Bar Settings Content
+
+    @ViewBuilder
+    private var menuBarSettingsContent: some View {
+        VStack(alignment: .leading, spacing: LKSpacing.sm) {
+            Toggle("Show remaining days in menu bar", isOn: $localSettings.showCountdownInMenuBar)
+                .onChange(of: localSettings.showCountdownInMenuBar) { _ in vm.updateSettings(localSettings) }
+
+            Toggle("Show progress percentage in menu bar", isOn: $localSettings.showProgressInMenuBar)
+                .onChange(of: localSettings.showProgressInMenuBar) { _ in vm.updateSettings(localSettings) }
+
+            Divider()
+
+            HStack(alignment: .top, spacing: LKSpacing.sm) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 13))
+                    .padding(.top, 2)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("5-Second Menu Bar Alternation Active")
+                        .font(LKFont.body)
+                        .foregroundColor(.labelPrimary)
+                    Text("The menu bar item smoothly rotates every 5 seconds between your overall goal remaining time and your nearest upcoming target task (formatted as YY-MM-DD).")
+                        .font(LKFont.caption)
+                        .foregroundColor(.labelSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(LKSpacing.sm)
+            .background(Color(NSColor.windowBackgroundColor))
+            .cornerRadius(LKRadius.sm)
+        }
+    }
+
+    // MARK: - 4. Notifications Content
+
+    @ViewBuilder
+    private var notificationSettingsContent: some View {
+        VStack(alignment: .leading, spacing: LKSpacing.sm) {
+            Toggle("Enable Notifications", isOn: $localSettings.notificationsEnabled)
+                .onChange(of: localSettings.notificationsEnabled) { _ in vm.updateSettings(localSettings) }
+
+            if localSettings.notificationsEnabled {
+                Divider()
+
+                Picker("Digest Frequency", selection: $localSettings.notificationFrequency) {
+                    ForEach(NotificationFrequency.allCases, id: \.self) { f in
+                        Text(f.rawValue).tag(f)
+                    }
+                }
+                .onChange(of: localSettings.notificationFrequency) { _ in vm.updateSettings(localSettings) }
+
+                Toggle("Alert on task deadline (YY-MM-DD)", isOn: $localSettings.notifyOnTaskDeadline)
+                    .onChange(of: localSettings.notifyOnTaskDeadline) { _ in vm.updateSettings(localSettings) }
+
+                Toggle("Alert when category milestone is completed", isOn: $localSettings.notifyOnMilestoneReached)
+                    .onChange(of: localSettings.notifyOnMilestoneReached) { _ in vm.updateSettings(localSettings) }
+
+                Toggle("Alert when goal deadline approaches", isOn: $localSettings.notifyOnGoalDeadlineApproach)
+                    .onChange(of: localSettings.notifyOnGoalDeadlineApproach) { _ in vm.updateSettings(localSettings) }
+
+                if localSettings.notifyOnGoalDeadlineApproach {
+                    Stepper(
+                        "Warn \(localSettings.goalDeadlineWarningDays) days before deadline",
+                        value: $localSettings.goalDeadlineWarningDays,
+                        in: 1...90
+                    )
+                    .onChange(of: localSettings.goalDeadlineWarningDays) { _ in vm.updateSettings(localSettings) }
+                }
+            }
+        }
+    }
+
+    // MARK: - 5. System Settings Content
+
+    @ViewBuilder
+    private var systemSettingsContent: some View {
+        VStack(alignment: .leading, spacing: LKSpacing.sm) {
+            Toggle("Launch LockedIn at Login", isOn: $localSettings.launchAtLogin)
+                .onChange(of: localSettings.launchAtLogin) { _ in
+                    vm.updateSettings(localSettings)
+                }
+
+            Divider()
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Data Storage Location")
+                        .font(LKFont.body)
+                    Text("~/Library/Application Support/LockedIn")
+                        .font(LKFont.mono)
+                        .foregroundColor(.labelSecondary)
+                }
+                Spacer()
+                Button("Open in Finder") {
+                    let url = PersistenceService.documentsDirectory
+                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+
+    // MARK: - 6. Backup & Restore Content
+
+    @ViewBuilder
+    private var backupSettingsContent: some View {
+        VStack(alignment: .leading, spacing: LKSpacing.sm) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Export All Goals & Tasks")
+                        .font(LKFont.body)
+                    Text("Export your entire goals hierarchy and settings as a standalone JSON backup file.")
+                        .font(LKFont.caption)
+                        .foregroundColor(.labelSecondary)
+                }
+                Spacer()
+                Button("Export Backup…") {
+                    if let data = PersistenceService.exportBackup() {
+                        exportDocument = BackupDocument(data: data)
+                        showExportPanel = true
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Divider()
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Restore from Backup")
+                        .font(LKFont.body)
+                    Text("Replace existing local data by loading a JSON backup.")
+                        .font(LKFont.caption)
+                        .foregroundColor(.labelSecondary)
+                }
+                Spacer()
+                Button("Restore Data…") {
+                    showRestoreConfirm = true
+                }
+                .buttonStyle(.bordered)
+            }
+            .confirmationDialog(
+                "Restore Backup",
+                isPresented: $showRestoreConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Restore and Replace Current Data", role: .destructive) { showImportPanel = true }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will replace all your current goals, categories, and tasks with the contents of the chosen backup file.")
+            }
+        }
+    }
+
+    // MARK: - Reusable Section Container
 
     @ViewBuilder
     private func settingsSection<Content: View>(
@@ -293,7 +407,7 @@ struct SettingsView: View {
             HStack(spacing: LKSpacing.sm) {
                 Image(systemName: icon)
                     .foregroundColor(.accentColor)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                 Text(title)
                     .font(LKFont.headline)
                     .foregroundColor(.labelPrimary)
@@ -305,14 +419,13 @@ struct SettingsView: View {
             .padding(LKSpacing.md)
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(LKRadius.md)
-            .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
         }
     }
 }
 
-// MARK: - AppearanceButton
+// MARK: - AppearanceCleanButton (Zero Blue Border)
 
-private struct AppearanceButton: View {
+private struct AppearanceCleanButton: View {
     let preference: AppearancePreference
     let isSelected: Bool
     let action: () -> Void
@@ -329,62 +442,24 @@ private struct AppearanceButton: View {
         Button(action: action) {
             VStack(spacing: LKSpacing.xs) {
                 Image(systemName: icon)
-                    .font(.system(size: 20))
+                    .font(.system(size: 18))
                     .foregroundColor(isSelected ? .accentColor : .labelSecondary)
                 Text(preference.rawValue)
                     .font(LKFont.caption)
-                    .foregroundColor(isSelected ? .accentColor : .labelSecondary)
+                    .foregroundColor(isSelected ? .labelPrimary : .labelSecondary)
             }
             .frame(maxWidth: .infinity)
-            .padding(LKSpacing.sm)
-            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+            .padding(.vertical, LKSpacing.sm)
+            .padding(.horizontal, LKSpacing.xs)
+            .background(isSelected ? Color(NSColor.windowBackgroundColor) : Color.clear)
             .cornerRadius(LKRadius.sm)
-            .overlay(
-                RoundedRectangle(cornerRadius: LKRadius.sm)
-                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5)
-            )
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - DeadlineEditorRow
-
-private struct DeadlineEditorRow: View {
-    @EnvironmentObject var vm: AppViewModel
-    let goal: Goal
-    @State private var hasDeadline: Bool = false
-    @State private var deadline: Date = Date()
-
-    var body: some View {
-        VStack(spacing: LKSpacing.sm) {
-            Toggle("Set target deadline", isOn: $hasDeadline)
-                .onChange(of: hasDeadline) { _ in save() }
-
-            if hasDeadline {
-                DatePicker("Target date",
-                           selection: $deadline,
-                           in: Date()...,
-                           displayedComponents: .date)
-                    .onChange(of: deadline) { _ in save() }
-            }
-        }
-        .onAppear {
-            hasDeadline = goal.targetDeadline != nil
-            deadline    = goal.targetDeadline ?? Calendar.current.date(byAdding: .year, value: 1, to: Date())!
-        }
-    }
-
-    private func save() {
-        var g = goal
-        g.targetDeadline = hasDeadline ? deadline : nil
-        vm.updateGoal(g)
+        .focusable(false)
     }
 }
 
 // MARK: - BackupDocument (FileDocument for export)
-
-import UniformTypeIdentifiers
 
 struct BackupDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }

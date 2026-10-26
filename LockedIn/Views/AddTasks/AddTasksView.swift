@@ -1,27 +1,52 @@
 // MARK: - AddTasksView.swift
 // Tab 2: Full goal, category, task, and subtask management.
-// All labels are generalized — no domain assumptions.
+// Single-sheet architecture ensures adding and editing tasks never fails.
+// Supports both quick inline task creation and detailed modal forms.
 
 import SwiftUI
+
+// MARK: - Active Sheet Enum
+
+enum AddTasksSheet: Identifiable {
+    case addGoal
+    case editGoal(Goal)
+    case addCategory(goalId: UUID)
+    case editCategory(goalId: UUID, category: Category)
+    case addTask(goalId: UUID, categoryId: UUID)
+    case editTask(goalId: UUID, categoryId: UUID, task: Task)
+
+    var id: String {
+        switch self {
+        case .addGoal:
+            return "addGoal"
+        case .editGoal(let g):
+            return "editGoal-\(g.id)"
+        case .addCategory(let gid):
+            return "addCategory-\(gid)"
+        case .editCategory(let gid, let c):
+            return "editCategory-\(gid)-\(c.id)"
+        case .addTask(let gid, let cid):
+            return "addTask-\(gid)-\(cid)"
+        case .editTask(let gid, let cid, let t):
+            return "editTask-\(gid)-\(cid)-\(t.id)"
+        }
+    }
+}
+
+// MARK: - AddTasksView
 
 struct AddTasksView: View {
     @EnvironmentObject var vm: AppViewModel
 
-    // Sheet states
-    @State private var showAddGoal: Bool = false
-    @State private var showAddCategory: Bool = false
-    @State private var showAddTask: Bool = false
-    @State private var editingGoal: Goal? = nil
-    @State private var editingCategory: Category? = nil
-    @State private var editingTask: Task? = nil
-    @State private var selectedCategoryId: UUID? = nil
+    @State private var activeSheet: AddTasksSheet? = nil
     @State private var expandedCategories: Set<UUID> = []
+    @State private var inlineNewTaskText: [UUID: String] = [:]
 
     var body: some View {
         HStack(spacing: 0) {
             // Sidebar: goal selector
             goalSidebar
-                .frame(width: 220)
+                .frame(width: 230)
                 .background(Color(NSColor.controlBackgroundColor))
 
             Divider()
@@ -34,42 +59,34 @@ struct AddTasksView: View {
                     icon: "target",
                     title: "No Goals",
                     message: "Create your first goal to start organizing tasks.",
-                    action: { showAddGoal = true },
+                    action: { activeSheet = .addGoal },
                     actionLabel: "Create Goal"
                 )
             }
         }
-        .sheet(isPresented: $showAddGoal) {
+        .sheet(item: $activeSheet) { sheet in
+            sheetContent(for: sheet)
+                .environmentObject(vm)
+        }
+    }
+
+    // MARK: - Sheet Builder
+
+    @ViewBuilder
+    private func sheetContent(for sheet: AddTasksSheet) -> some View {
+        switch sheet {
+        case .addGoal:
             GoalFormSheet(editingGoal: nil)
-                .environmentObject(vm)
-        }
-        .sheet(item: $editingGoal) { goal in
+        case .editGoal(let goal):
             GoalFormSheet(editingGoal: goal)
-                .environmentObject(vm)
-        }
-        .sheet(isPresented: $showAddCategory) {
-            if let goalId = vm.activeGoal?.id {
-                CategoryFormSheet(goalId: goalId, editingCategory: nil)
-                    .environmentObject(vm)
-            }
-        }
-        .sheet(item: $editingCategory) { category in
-            if let goalId = vm.activeGoal?.id {
-                CategoryFormSheet(goalId: goalId, editingCategory: category)
-                    .environmentObject(vm)
-            }
-        }
-        .sheet(isPresented: $showAddTask) {
-            if let goalId = vm.activeGoal?.id, let catId = selectedCategoryId {
-                TaskFormSheet(goalId: goalId, categoryId: catId, editingTask: nil)
-                    .environmentObject(vm)
-            }
-        }
-        .sheet(item: $editingTask) { task in
-            if let goalId = vm.activeGoal?.id, let catId = selectedCategoryId {
-                TaskFormSheet(goalId: goalId, categoryId: catId, editingTask: task)
-                    .environmentObject(vm)
-            }
+        case .addCategory(let goalId):
+            CategoryFormSheet(goalId: goalId, editingCategory: nil)
+        case .editCategory(let goalId, let category):
+            CategoryFormSheet(goalId: goalId, editingCategory: category)
+        case .addTask(let goalId, let categoryId):
+            TaskFormSheet(goalId: goalId, categoryId: categoryId, editingTask: nil)
+        case .editTask(let goalId, let categoryId, let task):
+            TaskFormSheet(goalId: goalId, categoryId: categoryId, editingTask: task)
         }
     }
 
@@ -82,11 +99,15 @@ struct AddTasksView: View {
                     .font(LKFont.headline)
                     .foregroundColor(.labelSecondary)
                 Spacer()
-                Button { showAddGoal = true } label: {
+                Button {
+                    activeSheet = .addGoal
+                } label: {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(.accentColor)
+                        .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
+                .focusable(false)
                 .help("Add Goal")
             }
             .padding(LKSpacing.md)
@@ -94,7 +115,7 @@ struct AddTasksView: View {
             Divider()
 
             ScrollView {
-                VStack(spacing: 2) {
+                VStack(spacing: 4) {
                     ForEach(vm.goals) { goal in
                         goalRow(goal)
                     }
@@ -105,9 +126,11 @@ struct AddTasksView: View {
     }
 
     private func goalRow(_ goal: Goal) -> some View {
-        HStack(spacing: LKSpacing.sm) {
+        let isSelected = vm.activeGoal?.id == goal.id
+
+        return HStack(spacing: LKSpacing.sm) {
             Circle()
-                .fill(vm.activeGoal?.id == goal.id ? Color.accentColor : Color.labelSecondary.opacity(0.3))
+                .fill(isSelected ? Color.accentColor : Color.labelSecondary.opacity(0.3))
                 .frame(width: 8, height: 8)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -116,32 +139,56 @@ struct AddTasksView: View {
                     .foregroundColor(.labelPrimary)
                     .lineLimit(1)
 
-                Text("\(goal.allLeafTasks.count) tasks · \(Int(goal.overallProgress * 100))%")
-                    .font(LKFont.caption)
-                    .foregroundColor(.labelSecondary)
+                HStack(spacing: 4) {
+                    Text("\(goal.allLeafTasks.count) tasks")
+                    Text("·")
+                    Text("\(Int(goal.overallProgress * 100))%")
+                    if let dl = goal.targetDeadline {
+                        Text("·")
+                        Text(dl.formattedYYMMDD)
+                            .font(.system(size: 10, design: .monospaced))
+                    }
+                }
+                .font(LKFont.caption)
+                .foregroundColor(.labelSecondary)
             }
 
             Spacer()
 
+            // Quick Edit Goal Button
+            Button {
+                activeSheet = .editGoal(goal)
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.system(size: 11))
+                    .foregroundColor(.labelSecondary)
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .help("Edit Goal")
+
+            // Context Menu
             Menu {
                 Button("Set as Active") { vm.setActiveGoal(goal) }
-                Button("Edit") { editingGoal = goal }
+                Button("Edit Goal") { activeSheet = .editGoal(goal) }
                 Divider()
-                Button("Delete", role: .destructive) { vm.deleteGoal(id: goal.id) }
+                Button("Delete Goal", role: .destructive) { vm.deleteGoal(id: goal.id) }
             } label: {
                 Image(systemName: "ellipsis")
                     .foregroundColor(.labelSecondary)
+                    .font(.system(size: 12))
             }
             .menuStyle(.borderlessButton)
-            .frame(width: 24)
+            .frame(width: 18)
         }
         .padding(LKSpacing.sm)
         .background(
-            vm.activeGoal?.id == goal.id
-            ? Color.accentColor.opacity(0.08)
+            isSelected
+            ? Color(NSColor.selectedControlColor).opacity(0.12)
             : Color.clear
         )
         .cornerRadius(LKRadius.sm)
+        .contentShape(Rectangle())
         .onTapGesture { vm.setActiveGoal(goal) }
     }
 
@@ -149,17 +196,53 @@ struct AddTasksView: View {
 
     private func mainContent(goal: Goal) -> some View {
         VStack(spacing: 0) {
-            // Toolbar
-            HStack {
-                Text(goal.name)
-                    .font(LKFont.title2)
-                    .foregroundColor(.labelPrimary)
+            // Header Toolbar
+            HStack(spacing: LKSpacing.md) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(goal.name)
+                            .font(LKFont.title2)
+                            .foregroundColor(.labelPrimary)
+
+                        // Explicit Edit Goal Button
+                        Button {
+                            activeSheet = .editGoal(goal)
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 11))
+                                Text("Edit Goal")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundColor(.accentColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.accentColor.opacity(0.1))
+                            .cornerRadius(5)
+                        }
+                        .buttonStyle(.plain)
+                        .focusable(false)
+                        .help("Edit Goal Name and Deadline")
+                    }
+
+                    if let dl = goal.targetDeadline {
+                        HStack(spacing: 4) {
+                            Text("Target Deadline: \(dl.formattedYYMMDD)")
+                            if let days = goal.daysRemaining {
+                                Text("(\(days) days remaining)")
+                                    .foregroundColor(days < 14 ? .orange : .labelSecondary)
+                            }
+                        }
+                        .font(LKFont.caption)
+                        .foregroundColor(.labelSecondary)
+                    }
+                }
 
                 Spacer()
 
                 ProgressRing(
                     progress: goal.overallProgress,
-                    lineWidth: 5,
+                    lineWidth: 4,
                     size: 32,
                     color: .accentColor,
                     showLabel: false
@@ -169,7 +252,7 @@ struct AddTasksView: View {
                     .foregroundColor(.accentColor)
 
                 Button {
-                    showAddCategory = true
+                    activeSheet = .addCategory(goalId: goal.id)
                 } label: {
                     Label("Add Category", systemImage: "folder.badge.plus")
                 }
@@ -179,18 +262,18 @@ struct AddTasksView: View {
 
             Divider()
 
-            // Categories & Tasks
+            // Categories & Tasks List
             if goal.categories.isEmpty {
                 EmptyStateView(
                     icon: "folder.badge.plus",
                     title: "No categories yet",
-                    message: "Organize your tasks into categories like Writing, Prep, or Training.",
-                    action: { showAddCategory = true },
+                    message: "Create categories like Writing, Research, or Milestone checkpoints to organize your tasks.",
+                    action: { activeSheet = .addCategory(goalId: goal.id) },
                     actionLabel: "Add Category"
                 )
             } else {
                 ScrollView {
-                    LazyVStack(spacing: LKSpacing.md, pinnedViews: [.sectionHeaders]) {
+                    LazyVStack(spacing: LKSpacing.md) {
                         ForEach(goal.categories) { category in
                             categorySection(category: category, goalId: goal.id)
                         }
@@ -201,25 +284,12 @@ struct AddTasksView: View {
         }
     }
 
+    // MARK: - Category Section
+
     private func categorySection(category: Category, goalId: UUID) -> some View {
-        let isExpanded = expandedCategories.contains(category.id)
-
-        return VStack(spacing: 0) {
-            // Category header
+        VStack(spacing: 0) {
+            // Category Header Bar
             HStack(spacing: LKSpacing.sm) {
-                Button {
-                    if isExpanded {
-                        expandedCategories.remove(category.id)
-                    } else {
-                        expandedCategories.insert(category.id)
-                    }
-                } label: {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 11))
-                        .foregroundColor(.labelSecondary)
-                }
-                .buttonStyle(.plain)
-
                 Circle()
                     .fill(Color(hex: category.colorHex) ?? .accentColor)
                     .frame(width: 10, height: 10)
@@ -233,7 +303,7 @@ struct AddTasksView: View {
                     .foregroundColor(.labelSecondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color(NSColor.separatorColor).opacity(0.5))
+                    .background(Color(NSColor.separatorColor).opacity(0.3))
                     .cornerRadius(8)
 
                 Spacer()
@@ -247,12 +317,34 @@ struct AddTasksView: View {
                     showLabel: false
                 )
 
-                Menu {
-                    Button("Add Task") {
-                        selectedCategoryId = category.id
-                        showAddTask = true
+                // Add Detailed Task Button
+                Button {
+                    activeSheet = .addTask(goalId: goalId, categoryId: category.id)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Add Task")
+                            .font(.system(size: 12, weight: .medium))
                     }
-                    Button("Edit Category") { editingCategory = category }
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.accentColor.opacity(0.1))
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Add detailed task with deadline and subtasks")
+
+                // Category Menu
+                Menu {
+                    Button("Add Task...") {
+                        activeSheet = .addTask(goalId: goalId, categoryId: category.id)
+                    }
+                    Button("Edit Category...") {
+                        activeSheet = .editCategory(goalId: goalId, category: category)
+                    }
                     Divider()
                     Button("Delete Category", role: .destructive) {
                         vm.deleteCategory(id: category.id, from: goalId)
@@ -262,67 +354,80 @@ struct AddTasksView: View {
                         .foregroundColor(.labelSecondary)
                 }
                 .menuStyle(.borderlessButton)
-                .frame(width: 24)
-
-                Button {
-                    selectedCategoryId = category.id
-                    showAddTask = true
-                } label: {
-                    Image(systemName: "plus")
-                        .foregroundColor(.accentColor)
-                }
-                .buttonStyle(.plain)
-                .help("Add task to \(category.name)")
+                .frame(width: 20)
             }
             .padding(LKSpacing.sm)
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(LKRadius.sm)
 
-            // Tasks
-            if isExpanded || !expandedCategories.isEmpty {
-                if category.tasks.isEmpty {
-                    HStack {
-                        Text("No tasks yet")
-                            .font(LKFont.caption)
-                            .foregroundColor(.labelSecondary)
-                            .italic()
-                        Spacer()
-                        Button("Add Task") {
-                            selectedCategoryId = category.id
-                            showAddTask = true
+            // Tasks List
+            VStack(spacing: 2) {
+                // Existing Tasks
+                ForEach(category.tasks) { task in
+                    TaskRowView(
+                        task: task,
+                        categoryId: category.id,
+                        goalId: goalId,
+                        onEdit: {
+                            activeSheet = .editTask(goalId: goalId, categoryId: category.id, task: task)
                         }
-                        .buttonStyle(.borderless)
-                        .foregroundColor(.accentColor)
-                        .font(LKFont.caption)
-                    }
-                    .padding(.horizontal, LKSpacing.lg)
-                    .padding(.vertical, LKSpacing.sm)
-                } else {
-                    VStack(spacing: 2) {
-                        ForEach(category.tasks) { task in
-                            TaskRowView(
-                                task: task,
-                                categoryId: category.id,
-                                goalId: goalId,
-                                onEdit: {
-                                    selectedCategoryId = category.id
-                                    editingTask = task
-                                }
-                            )
-                            .environmentObject(vm)
-                        }
-                    }
-                    .padding(.leading, LKSpacing.lg)
+                    )
+                    .environmentObject(vm)
                 }
+
+                // Inline Quick-Add Task Input Bar
+                inlineQuickAddTaskBar(category: category, goalId: goalId)
             }
+            .padding(.leading, LKSpacing.sm)
+            .padding(.top, 4)
         }
+        .padding(LKSpacing.sm)
         .background(Color(NSColor.windowBackgroundColor))
         .cornerRadius(LKRadius.md)
         .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
-        .onAppear {
-            // Expand all categories by default
-            expandedCategories.insert(category.id)
+    }
+
+    // MARK: - Inline Quick-Add Task Bar
+
+    private func inlineQuickAddTaskBar(category: Category, goalId: UUID) -> some View {
+        let binding = Binding<String>(
+            get: { inlineNewTaskText[category.id] ?? "" },
+            set: { inlineNewTaskText[category.id] = $0 }
+        )
+
+        return HStack(spacing: LKSpacing.sm) {
+            Image(systemName: "plus.circle")
+                .foregroundColor(.accentColor)
+                .font(.system(size: 14))
+
+            TextField("Add task to \"\(category.name)\"... (Press Return to save)", text: binding)
+                .textFieldStyle(.plain)
+                .font(LKFont.body)
+                .onSubmit {
+                    submitQuickTask(category: category, goalId: goalId)
+                }
+
+            if !(inlineNewTaskText[category.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
+                Button("Save") {
+                    submitQuickTask(category: category, goalId: goalId)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
         }
+        .padding(.horizontal, LKSpacing.md)
+        .padding(.vertical, 8)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+        .cornerRadius(LKRadius.sm)
+    }
+
+    private func submitQuickTask(category: Category, goalId: UUID) {
+        guard let text = inlineNewTaskText[category.id]?.trimmingCharacters(in: .whitespaces),
+              !text.isEmpty else { return }
+
+        let task = Task(title: text)
+        vm.addTask(task, to: category.id, in: goalId)
+        inlineNewTaskText[category.id] = ""
     }
 }
 
@@ -347,6 +452,7 @@ struct TaskRowView: View {
                         .font(.system(size: 18))
                 }
                 .buttonStyle(.plain)
+                .focusable(false)
 
                 // Milestone flag
                 if task.isMilestone {
@@ -373,18 +479,29 @@ struct TaskRowView: View {
                 Spacer()
 
                 if let dl = task.deadline {
-                    Text(dl.formatted(date: .abbreviated, time: .omitted))
-                        .font(LKFont.caption)
+                    Text(dl.formattedYYMMDD)
+                        .font(LKFont.mono)
                         .foregroundColor(task.isOverdue ? .red : .labelSecondary)
                 }
 
                 StatusBadge(status: task.status)
                 PriorityBadge(priority: task.priority)
 
+                Button {
+                    onEdit()
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 11))
+                        .foregroundColor(.labelSecondary)
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .help("Edit task")
+
                 Menu {
-                    Button("Edit") { onEdit() }
+                    Button("Edit Task...") { onEdit() }
                     Divider()
-                    Button("Delete", role: .destructive) {
+                    Button("Delete Task", role: .destructive) {
                         vm.deleteTask(id: task.id, from: categoryId, goalId: goalId)
                     }
                 } label: {
@@ -392,7 +509,7 @@ struct TaskRowView: View {
                         .foregroundColor(.labelSecondary)
                 }
                 .menuStyle(.borderlessButton)
-                .frame(width: 24)
+                .frame(width: 20)
             }
             .padding(.horizontal, LKSpacing.md)
             .padding(.vertical, LKSpacing.sm)
@@ -405,17 +522,17 @@ struct TaskRowView: View {
             }
 
             Divider()
-                .padding(.leading, 44)
+                .padding(.leading, 36)
         }
     }
 
     private func subtaskRow(_ sub: Task) -> some View {
         HStack(spacing: LKSpacing.sm) {
-            Spacer().frame(width: 28)
+            Spacer().frame(width: 24)
 
             Image(systemName: sub.status == .completed ? "checkmark.circle.fill" : "circle")
                 .foregroundColor(sub.status == .completed ? .green : .labelSecondary.opacity(0.7))
-                .font(.system(size: 14))
+                .font(.system(size: 13))
 
             Text(sub.title)
                 .font(LKFont.caption)
@@ -425,20 +542,6 @@ struct TaskRowView: View {
             Spacer()
         }
         .padding(.horizontal, LKSpacing.md)
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Color(hex:) extension
-
-extension Color {
-    init?(hex: String) {
-        var h = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if h.hasPrefix("#") { h = String(h.dropFirst()) }
-        guard h.count == 6, let val = UInt64(h, radix: 16) else { return nil }
-        let r = Double((val >> 16) & 0xFF) / 255
-        let g = Double((val >> 8) & 0xFF) / 255
-        let b = Double(val & 0xFF) / 255
-        self.init(red: r, green: g, blue: b)
+        .padding(.vertical, 3)
     }
 }

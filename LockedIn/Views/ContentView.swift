@@ -41,12 +41,9 @@ struct ContentView: View {
     // MARK: - Top Navigation Bar
     private var topNavigationBar: some View {
         HStack(spacing: LKSpacing.md) {
-            // App Branding & Logo
+            // App Branding & Real App Logo Icon
             HStack(spacing: LKSpacing.sm) {
-                Image(systemName: "lock.shield.fill")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.accentColor)
-                    .font(.system(size: 20, weight: .bold))
+                AppIconView(size: 30, cornerRadius: 7)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("LockedIn")
@@ -61,23 +58,19 @@ struct ContentView: View {
 
             Spacer()
 
-            // Exactly Three Primary Navigation Tabs
-            HStack(spacing: 6) {
+            // Exactly Three Primary Navigation Tabs (No blue borders / no glow outlines)
+            HStack(spacing: 4) {
                 tabButton(title: "Dashboard", icon: "square.grid.2x2.fill", tabIndex: 0)
                 tabButton(title: "Add Tasks", icon: "plus.circle.fill", tabIndex: 1)
                 tabButton(title: "Settings", icon: "gearshape.fill", tabIndex: 2)
             }
-            .padding(4)
+            .padding(3)
             .background(Color(NSColor.controlBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: LKRadius.md, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: LKRadius.md, style: .continuous)
-                    .stroke(Color(NSColor.separatorColor).opacity(0.3), lineWidth: 1)
-            )
 
             Spacer()
 
-            // Active Goal & Countdown pill or Quick Status
+            // Active Goal & Countdown pill with YY-MM-DD formatting
             if let goal = vm.activeGoal {
                 HStack(spacing: LKSpacing.sm) {
                     VStack(alignment: .trailing, spacing: 1) {
@@ -86,10 +79,17 @@ struct ContentView: View {
                             .lineLimit(1)
                             .foregroundColor(.labelPrimary)
 
-                        if let days = goal.daysRemaining {
-                            Text(days >= 0 ? "\(days)d remaining" : "Overdue")
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundColor(days < 14 ? .orange : .labelSecondary)
+                        HStack(spacing: 4) {
+                            if let dl = goal.targetDeadline {
+                                Text(dl.formattedYYMMDD)
+                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                    .foregroundColor(.labelSecondary)
+                            }
+                            if let days = goal.daysRemaining {
+                                Text("(\(days)d)")
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(days < 14 ? .orange : .labelSecondary)
+                            }
                         }
                     }
 
@@ -112,12 +112,12 @@ struct ContentView: View {
         .background(Color(NSColor.windowBackgroundColor))
     }
 
-    // MARK: - Navigation Tab Button
+    // MARK: - Navigation Tab Button (Clean segmented design without blue border)
     private func tabButton(title: String, icon: String, tabIndex: Int) -> some View {
         let isSelected = vm.selectedTab == tabIndex
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
+            withAnimation(.easeInOut(duration: 0.16)) {
                 vm.selectedTab = tabIndex
             }
         } label: {
@@ -129,19 +129,13 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
-            .foregroundColor(isSelected ? Color.white : .labelSecondary)
+            .foregroundColor(isSelected ? .labelPrimary : .labelSecondary)
             .background(
                 Group {
                     if isSelected {
                         RoundedRectangle(cornerRadius: LKRadius.sm, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.accentColor, Color.accentColor.opacity(0.85)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color.accentColor.opacity(0.3), radius: 3, x: 0, y: 1)
+                            .fill(Color(NSColor.windowBackgroundColor))
+                            .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
                     } else {
                         Color.clear
                     }
@@ -150,5 +144,6 @@ struct ContentView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusable(false)
     }
 }

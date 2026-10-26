@@ -1,5 +1,6 @@
 // MARK: - MenuBarView.swift
-// Persistent menu bar extra showing countdown, progress, active task, and timer controls.
+// Persistent menu bar extra showing countdown, progress, nearest task, and task checklist.
+// Focus timer completely removed; dates formatted as YY-MM-DD throughout.
 
 import SwiftUI
 
@@ -9,30 +10,28 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header bar
+            // Header bar with app icon
             headerBar
 
             Divider()
 
-            // Tab switcher
-            HStack(spacing: 0) {
-                tabButton("Dashboard", tag: 0, icon: "house")
-                tabButton("Timer", tag: 1, icon: "timer")
-                tabButton("Tasks", tag: 2, icon: "checklist")
+            // 2-Tab Switcher (Dashboard & Tasks)
+            HStack(spacing: 4) {
+                tabButton("Dashboard", tag: 0, icon: "square.grid.2x2.fill")
+                tabButton("Tasks", tag: 1, icon: "checklist")
             }
             .padding(.horizontal, LKSpacing.sm)
-            .padding(.vertical, LKSpacing.xs)
+            .padding(.vertical, 6)
 
             Divider()
 
-            // Tab content
+            // Tab Content
             ScrollView {
                 Group {
                     switch selectedTab {
                     case 0: dashboardContent
-                    case 1: timerContent
-                    case 2: tasksContent
-                    default: EmptyView()
+                    case 1: tasksContent
+                    default: dashboardContent
                     }
                 }
                 .padding(LKSpacing.sm)
@@ -40,21 +39,18 @@ struct MenuBarView: View {
 
             Divider()
 
-            // Footer
+            // Footer with Open App & Quit
             footerBar
         }
         .frame(width: 320)
-        .frame(maxHeight: 500)
+        .frame(maxHeight: 460)
     }
 
-    // MARK: - Header
+    // MARK: - Header Bar
 
     private var headerBar: some View {
         HStack(spacing: LKSpacing.sm) {
-            Image("MenuBarIcon")
-                .resizable()
-                .frame(width: 22, height: 22)
-                .cornerRadius(4)
+            AppIconView(size: 24, cornerRadius: 5)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(vm.activeGoal?.name ?? "LockedIn")
@@ -74,14 +70,16 @@ struct MenuBarView: View {
 
             Spacer()
 
-            if let days = vm.activeGoal?.daysRemaining {
-                VStack(spacing: 0) {
-                    Text("\(days)")
-                        .font(.system(size: 18, weight: .bold, design: .monospaced))
-                        .foregroundColor(days < 30 ? .orange : .labelPrimary)
-                    Text("days")
-                        .font(.system(size: 9))
-                        .foregroundColor(.labelSecondary)
+            if let goal = vm.activeGoal, let days = goal.daysRemaining {
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text("\(days)d")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundColor(days < 14 ? .orange : .labelPrimary)
+                    if let dl = goal.targetDeadline {
+                        Text(dl.formattedYYMMDD)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.labelSecondary)
+                    }
                 }
             }
         }
@@ -115,31 +113,45 @@ struct MenuBarView: View {
     private var dashboardContent: some View {
         VStack(spacing: LKSpacing.sm) {
             if let goal = vm.activeGoal {
-                // Countdown
+                // Target Countdown Pill
                 HStack {
                     Image(systemName: "calendar.badge.clock")
                         .foregroundColor(.accentColor)
-                    Text(countdownLabel(goal))
-                        .font(LKFont.body)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(countdownLabel(goal))
+                            .font(LKFont.headline)
+                        if let dl = goal.targetDeadline {
+                            Text("Target Date: \(dl.formattedYYMMDD)")
+                                .font(LKFont.caption)
+                                .foregroundColor(.labelSecondary)
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(LKSpacing.sm)
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(LKRadius.sm)
 
-                // Active task
-                if let task = vm.nextUpcomingTask {
+                // Nearest Target Task Card
+                if let task = vm.nearestTargetTask {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("NEXT UP")
-                            .font(LKFont.caption)
+                        Text("NEAREST TARGET TASK")
+                            .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(.labelSecondary)
                             .tracking(0.6)
+
                         HStack {
-                            Image(systemName: task.status.icon)
-                                .foregroundColor(.accentColor)
+                            Image(systemName: task.isMilestone ? "flag.fill" : task.status.icon)
+                                .foregroundColor(task.isMilestone ? .yellow : .accentColor)
                             Text(task.title)
                                 .font(LKFont.body)
                                 .lineLimit(2)
+                            Spacer()
+                            if let dl = task.deadline {
+                                Text(dl.formattedYYMMDD)
+                                    .font(LKFont.caption)
+                                    .foregroundColor(task.isOverdue ? .red : .labelSecondary)
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -148,110 +160,36 @@ struct MenuBarView: View {
                     .cornerRadius(LKRadius.sm)
                 }
 
-                // Category progress
-                ForEach(goal.categories.prefix(3)) { cat in
-                    HStack {
-                        Circle()
-                            .fill(Color(hex: cat.colorHex) ?? .accentColor)
-                            .frame(width: 8, height: 8)
-                        Text(cat.name)
-                            .font(LKFont.caption)
-                            .lineLimit(1)
-                        Spacer()
-                        ProgressView(value: cat.progress)
-                            .frame(width: 60)
-                            .tint(Color(hex: cat.colorHex) ?? .accentColor)
-                        Text("\(Int(cat.progress * 100))%")
-                            .font(LKFont.caption)
-                            .foregroundColor(.labelSecondary)
-                            .frame(width: 30, alignment: .trailing)
+                // Category Progress List
+                VStack(spacing: 4) {
+                    ForEach(goal.categories) { cat in
+                        HStack {
+                            Circle()
+                                .fill(Color(hex: cat.colorHex) ?? .accentColor)
+                                .frame(width: 8, height: 8)
+                            Text(cat.name)
+                                .font(LKFont.caption)
+                                .lineLimit(1)
+                            Spacer()
+                            ProgressView(value: cat.progress)
+                                .frame(width: 60)
+                                .tint(Color(hex: cat.colorHex) ?? .accentColor)
+                            Text("\(Int(cat.progress * 100))%")
+                                .font(LKFont.caption)
+                                .foregroundColor(.labelSecondary)
+                                .frame(width: 32, alignment: .trailing)
+                        }
+                        .padding(.vertical, 2)
                     }
                 }
+                .padding(LKSpacing.sm)
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                .cornerRadius(LKRadius.sm)
+
             } else {
                 Text("No active goal")
                     .foregroundColor(.labelSecondary)
                     .font(LKFont.caption)
-            }
-        }
-    }
-
-    // MARK: - Timer Tab
-
-    private var timerContent: some View {
-        VStack(spacing: LKSpacing.md) {
-            // Timer display
-            ZStack {
-                Circle()
-                    .stroke(Color(NSColor.separatorColor).opacity(0.2), lineWidth: 8)
-                    .frame(width: 110, height: 110)
-
-                Circle()
-                    .trim(from: 0, to: vm.timerProgress)
-                    .stroke(
-                        vm.timerIsBreak ? Color.green : Color.accentColor,
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 1), value: vm.timerProgress)
-                    .frame(width: 110, height: 110)
-
-                VStack(spacing: 2) {
-                    Text(timeString(vm.timerSecondsRemaining))
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                    Text(vm.timerIsBreak ? "break" : "focus")
-                        .font(LKFont.caption)
-                        .foregroundColor(.labelSecondary)
-                }
-            }
-
-            // Task name
-            if let task = vm.activeTaskForTimer {
-                Text(task.title)
-                    .font(LKFont.caption)
-                    .foregroundColor(.labelSecondary)
-                    .lineLimit(1)
-            }
-
-            // Controls
-            HStack(spacing: LKSpacing.md) {
-                switch vm.timerState {
-                case .idle:
-                    Button { vm.startFocusTimer(for: vm.activeTaskForTimer) } label: {
-                        Label("Start", systemImage: "play.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                case .running:
-                    Button { vm.pauseTimer() } label: {
-                        Label("Pause", systemImage: "pause.fill")
-                    }
-                    .buttonStyle(.bordered)
-                    Button { vm.stopTimer() } label: {
-                        Image(systemName: "stop.fill")
-                    }
-                    .buttonStyle(.bordered)
-                    .foregroundColor(.red)
-
-                case .paused:
-                    Button { vm.resumeTimer() } label: {
-                        Label("Resume", systemImage: "play.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    Button { vm.stopTimer() } label: {
-                        Image(systemName: "stop.fill")
-                    }
-                    .buttonStyle(.bordered)
-                    .foregroundColor(.red)
-
-                case .breakTime:
-                    Button { vm.stopTimer() } label: {
-                        Label("Skip", systemImage: "forward.fill")
-                    }
-                    .buttonStyle(.bordered)
-
-                case .completed:
-                    EmptyView()
-                }
             }
         }
     }
@@ -261,22 +199,54 @@ struct MenuBarView: View {
     private var tasksContent: some View {
         VStack(spacing: LKSpacing.xs) {
             if let goal = vm.activeGoal {
-                ForEach(goal.allTasks.filter { $0.status != .completed }.prefix(8)) { task in
-                    HStack(spacing: LKSpacing.sm) {
-                        Image(systemName: task.isMilestone ? "flag.fill" : task.status.icon)
-                            .foregroundColor(task.isMilestone ? .yellow : .labelSecondary)
-                            .font(.system(size: 12))
-                        Text(task.title)
-                            .font(LKFont.caption)
-                            .lineLimit(1)
-                        Spacer()
-                        PriorityBadge(priority: task.priority)
+                let incomplete = goal.allTasks.filter { $0.status != .completed }
+
+                if incomplete.isEmpty {
+                    Text("All tasks completed! 🎉")
+                        .font(LKFont.body)
+                        .foregroundColor(.labelSecondary)
+                        .padding(LKSpacing.md)
+                } else {
+                    ForEach(incomplete.prefix(10)) { task in
+                        HStack(spacing: LKSpacing.sm) {
+                            Button {
+                                if let cat = goal.categories.first(where: { c in c.tasks.contains(where: { $0.id == task.id }) }) {
+                                    vm.toggleTaskStatus(task.id, in: cat.id, goalId: goal.id)
+                                }
+                            } label: {
+                                Image(systemName: task.status == .completed ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(task.status == .completed ? .green : .labelSecondary)
+                                    .font(.system(size: 13))
+                            }
+                            .buttonStyle(.plain)
+                            .focusable(false)
+
+                            if task.isMilestone {
+                                Image(systemName: "flag.fill")
+                                    .foregroundColor(.yellow)
+                                    .font(.system(size: 10))
+                            }
+
+                            Text(task.title)
+                                .font(LKFont.caption)
+                                .lineLimit(1)
+
+                            Spacer()
+
+                            if let dl = task.deadline {
+                                Text(dl.formattedYYMMDD)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(task.isOverdue ? .red : .labelSecondary)
+                            }
+
+                            PriorityBadge(priority: task.priority)
+                        }
+                        .padding(.vertical, 4)
+                        Divider()
                     }
-                    .padding(.vertical, 4)
-                    Divider()
                 }
             } else {
-                Text("No tasks")
+                Text("No tasks available")
                     .foregroundColor(.labelSecondary)
                     .font(LKFont.caption)
             }
@@ -289,15 +259,20 @@ struct MenuBarView: View {
         Button {
             selectedTab = tag
         } label: {
-            Label(title, systemImage: icon)
-                .font(.system(size: 11, weight: selectedTab == tag ? .semibold : .regular))
-                .foregroundColor(selectedTab == tag ? .accentColor : .labelSecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .background(selectedTab == tag ? Color.accentColor.opacity(0.08) : Color.clear)
-                .cornerRadius(LKRadius.sm)
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                Text(title)
+                    .font(.system(size: 12, weight: selectedTab == tag ? .semibold : .regular))
+            }
+            .foregroundColor(selectedTab == tag ? .labelPrimary : .labelSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+            .background(selectedTab == tag ? Color(NSColor.controlBackgroundColor) : Color.clear)
+            .cornerRadius(LKRadius.sm)
         }
         .buttonStyle(.plain)
+        .focusable(false)
     }
 
     private func countdownLabel(_ goal: Goal) -> String {
@@ -305,9 +280,5 @@ struct MenuBarView: View {
         if goal.isOverdue { return "Overdue!" }
         if days == 0 { return "Due today!" }
         return "\(days) days remaining"
-    }
-
-    private func timeString(_ seconds: Int) -> String {
-        String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 }

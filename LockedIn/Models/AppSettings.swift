@@ -50,8 +50,8 @@ struct AppSettings: Codable {
     // Launch
     var launchAtLogin: Bool = false
 
-    // Timer preferences
-    var timerSettings: TimerSettings = TimerSettings()
+    // Menu Bar Alternating Display
+    var alternateNearestTaskInMenuBar: Bool = true
 
     // Onboarding
     var hasCompletedOnboarding: Bool = false

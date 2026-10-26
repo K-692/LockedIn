@@ -16,12 +16,11 @@
 		A1000007 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000007 /* OnboardingView.swift */; };
 		A1000008 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000008 /* MenuBarView.swift */; };
 		A1000009 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009 /* DesignSystem.swift */; };
-		A1000010 /* FocusTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000010 /* FocusTimerView.swift */; };
+		A1000010 /* AppIconAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000010 /* AppIconAsset.swift */; };
 		A1000011 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000011 /* AppViewModel.swift */; };
 		A1000012 /* Goal.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000012 /* Goal.swift */; };
 		A1000013 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000013 /* Category.swift */; };
 		A1000014 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000014 /* Task.swift */; };
-		A1000015 /* FocusSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000015 /* FocusSession.swift */; };
 		A1000016 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000016 /* AppSettings.swift */; };
 		A1000017 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000017 /* PersistenceService.swift */; };
 		A1000018 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000018 /* NotificationService.swift */; };
@@ -39,12 +38,11 @@
 		B1000007 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		B1000008 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		B1000009 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
-		B1000010 /* FocusTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusTimerView.swift; sourceTree = "<group>"; };
+		B1000010 /* AppIconAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconAsset.swift; sourceTree = "<group>"; };
 		B1000011 /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
 		B1000012 /* Goal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Goal.swift; sourceTree = "<group>"; };
 		B1000013 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 		B1000014 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
-		B1000015 /* FocusSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusSession.swift; sourceTree = "<group>"; };
 		B1000016 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		B1000017 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		B1000018 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
@@ -99,7 +97,6 @@
 				B1000012 /* Goal.swift */,
 				B1000013 /* Category.swift */,
 				B1000014 /* Task.swift */,
-				B1000015 /* FocusSession.swift */,
 				B1000016 /* AppSettings.swift */,
 			);
 			path = Models;
@@ -124,7 +121,7 @@
 				B1000007 /* OnboardingView.swift */,
 				B1000008 /* MenuBarView.swift */,
 				B1000009 /* DesignSystem.swift */,
-				B1000010 /* FocusTimerView.swift */,
+				B1000010 /* AppIconAsset.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -219,12 +216,11 @@
 				A1000007 /* OnboardingView.swift in Sources */,
 				A1000008 /* MenuBarView.swift in Sources */,
 				A1000009 /* DesignSystem.swift in Sources */,
-				A1000010 /* FocusTimerView.swift in Sources */,
+				A1000010 /* AppIconAsset.swift in Sources */,
 				A1000011 /* AppViewModel.swift in Sources */,
 				A1000012 /* Goal.swift in Sources */,
 				A1000013 /* Category.swift in Sources */,
 				A1000014 /* Task.swift in Sources */,
-				A1000015 /* FocusSession.swift in Sources */,
 				A1000016 /* AppSettings.swift in Sources */,
 				A1000017 /* PersistenceService.swift in Sources */,
 				A1000018 /* NotificationService.swift in Sources */,

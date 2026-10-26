@@ -1,7 +1,7 @@
 // MARK: - AppViewModel.swift
-// Central observable state for the entire app.
-// Owns goals, settings, and focus-timer state.
-// All persistence calls route through PersistenceService.
+// Central observable state for LockedIn.
+// Manages goals, categories, tasks, settings, and menu bar rotation.
+// All persistence routes through PersistenceService.
 
 import SwiftUI
 import Combine
@@ -13,33 +13,32 @@ final class AppViewModel: ObservableObject {
 
     @Published var goals: [Goal] = []
     @Published var settings: AppSettings = AppSettings()
-    @Published var focusSessions: [FocusSession] = []
 
     // Active goal — looked up by activeGoalId in settings.
     @Published var activeGoal: Goal? = nil
-
-    // Focus timer state
-    @Published var timerState: FocusSessionState = .idle
-    @Published var timerSecondsRemaining: Int = 0
-    @Published var timerSecondsTotal: Int = 0
-    @Published var timerIsBreak: Bool = false
-    @Published var sessionsCompletedInCycle: Int = 0
-    @Published var activeTaskForTimer: Task? = nil
 
     // UI state
     @Published var selectedTab: Int = 0
     @Published var showOnboarding: Bool = false
 
+    // Menu Bar Alternating Display (toggles every 5 seconds)
+    // false = overall goal remaining time; true = nearest target task
+    @Published var showNearestTaskInMenuBar: Bool = false
+
     // MARK: - Private
 
-    private var timer: Timer?
-    private var currentSession: FocusSession?
+    private var menuBarTimer: Timer?
 
     // MARK: - Init
 
     init() {
         load()
         showOnboarding = !settings.hasCompletedOnboarding
+        startMenuBarAlternatingTimer()
+    }
+
+    deinit {
+        menuBarTimer?.invalidate()
     }
 
     // MARK: - Persistence
@@ -47,14 +46,12 @@ final class AppViewModel: ObservableObject {
     func load() {
         goals    = PersistenceService.loadGoals()
         settings = PersistenceService.loadSettings()
-        focusSessions = PersistenceService.loadSessions()
         refreshActiveGoal()
     }
 
     func save() {
         PersistenceService.saveGoals(goals)
         PersistenceService.saveSettings(settings)
-        PersistenceService.saveSessions(focusSessions)
     }
 
     // MARK: - Active Goal
@@ -67,24 +64,38 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    var activeGoalId: UUID? {
+        settings.activeGoalId ?? goals.first?.id
+    }
+
     func setActiveGoal(_ goal: Goal) {
         settings.activeGoalId = goal.id
         activeGoal = goal
         save()
     }
 
+    func setActiveGoalId(_ id: UUID) {
+        if let g = goals.first(where: { $0.id == id }) {
+            setActiveGoal(g)
+        }
+    }
+
     // MARK: - Goal CRUD
 
     func addGoal(_ goal: Goal) {
         goals.append(goal)
-        if goals.count == 1 { setActiveGoal(goal) }
+        if goals.count == 1 || activeGoal == nil {
+            setActiveGoal(goal)
+        }
         save()
     }
 
     func updateGoal(_ goal: Goal) {
         guard let idx = goals.firstIndex(where: { $0.id == goal.id }) else { return }
         goals[idx] = goal
-        if activeGoal?.id == goal.id { activeGoal = goal }
+        if activeGoal?.id == goal.id {
+            activeGoal = goal
+        }
         save()
     }
 
@@ -157,121 +168,51 @@ final class AppViewModel: ObservableObject {
         var task = goals[gIdx].categories[cIdx].tasks[tIdx]
         task.status = task.status == .completed ? .notStarted : .completed
         task.completedAt = task.status == .completed ? Date() : nil
+
+        if task.status == .completed && task.isMilestone && settings.notifyOnMilestoneReached {
+            NotificationService.sendMilestoneNotification(
+                milestoneName: task.title,
+                goalName: goals[gIdx].name
+            )
+        }
+
         goals[gIdx].categories[cIdx].tasks[tIdx] = task
         refreshActiveGoal()
         save()
     }
 
-    // MARK: - Focus Timer
+    // MARK: - Menu Bar Alternating Display (Every 5 seconds)
 
-    /// Starts a focus session for the given task.
-    func startFocusTimer(for task: Task?) {
-        stopTimer()
-        let durationSeconds = settings.timerSettings.focusDurationMinutes * 60
-        timerIsBreak              = false
-        timerSecondsTotal         = durationSeconds
-        timerSecondsRemaining     = durationSeconds
-        timerState                = .running
-        activeTaskForTimer        = task
-
-        currentSession = FocusSession(
-            taskId: task?.id,
-            taskTitle: task?.title ?? "",
-            startedAt: Date(),
-            durationSeconds: durationSeconds
-        )
-        startTicking()
-    }
-
-    func pauseTimer() {
-        guard timerState == .running else { return }
-        timerState = .paused
-        timer?.invalidate()
-        timer = nil
-    }
-
-    func resumeTimer() {
-        guard timerState == .paused else { return }
-        timerState = .running
-        startTicking()
-    }
-
-    func stopTimer() {
-        timerState = .idle
-        timer?.invalidate()
-        timer = nil
-        currentSession = nil
-    }
-
-    private func startTicking() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            _Concurrency.Task { @MainActor in self?.tick() }
-        }
-        RunLoop.main.add(timer!, forMode: .common)
-    }
-
-    private func tick() {
-        guard timerState == .running else { return }
-        if timerSecondsRemaining > 0 {
-            timerSecondsRemaining -= 1
-            currentSession?.secondsElapsed += 1
-        } else {
-            timerCompleted()
-        }
-    }
-
-    private func timerCompleted() {
-        timer?.invalidate()
-        timer = nil
-
-        // Save the completed session
-        if var session = currentSession {
-            session.endedAt = Date()
-            focusSessions.append(session)
-            PersistenceService.saveSessions(focusSessions)
-        }
-
-        if !timerIsBreak {
-            sessionsCompletedInCycle += 1
-            if settings.timerSettings.notifyOnComplete {
-                NotificationService.sendFocusCompleteNotification(
-                    taskTitle: activeTaskForTimer?.title ?? "Task",
-                    isBreak: false
-                )
-            }
-            startBreak()
-        } else {
-            timerState = .idle
-            timerIsBreak = false
-            if settings.timerSettings.notifyOnComplete {
-                NotificationService.sendFocusCompleteNotification(
-                    taskTitle: activeTaskForTimer?.title ?? "Task",
-                    isBreak: true
-                )
+    private func startMenuBarAlternatingTimer() {
+        menuBarTimer?.invalidate()
+        menuBarTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            _Concurrency.Task { @MainActor in
+                self?.showNearestTaskInMenuBar.toggle()
             }
         }
+        RunLoop.main.add(menuBarTimer!, forMode: .common)
     }
 
-    private func startBreak() {
-        let isLong = sessionsCompletedInCycle % settings.timerSettings.sessionsUntilLongBreak == 0
-        let breakDuration = (isLong
-            ? settings.timerSettings.longBreakMinutes
-            : settings.timerSettings.shortBreakMinutes) * 60
+    // MARK: - Computed Helpers
 
-        timerIsBreak          = true
-        timerState            = .breakTime
-        timerSecondsTotal     = breakDuration
-        timerSecondsRemaining = breakDuration
+    /// The most imminent incomplete task across the active goal (earliest deadline first).
+    var nearestTargetTask: Task? {
+        guard let goal = activeGoal else { return nil }
+        let incomplete = goal.allLeafTasks.filter { $0.status != .completed }
+        // Filter tasks that have an explicit deadline, sort earliest first
+        let withDeadline = incomplete
+            .filter { $0.deadline != nil }
+            .sorted { ($0.deadline ?? .distantFuture) < ($1.deadline ?? .distantFuture) }
 
-        currentSession = FocusSession(
-            taskId: activeTaskForTimer?.id,
-            taskTitle: activeTaskForTimer?.title ?? "",
-            startedAt: Date(),
-            durationSeconds: breakDuration,
-            isBreak: true
-        )
+        if let firstWithDeadline = withDeadline.first {
+            return firstWithDeadline
+        }
+        return incomplete.first
+    }
 
-        if settings.timerSettings.autoStartBreak { startTicking() }
+    /// Next upcoming task (not completed) across the active goal.
+    var nextUpcomingTask: Task? {
+        nearestTargetTask
     }
 
     // MARK: - Settings
@@ -285,36 +226,5 @@ final class AppViewModel: ObservableObject {
         settings.hasCompletedOnboarding = true
         save()
         showOnboarding = false
-    }
-
-    // MARK: - Computed Helpers
-
-    /// Next upcoming task (not completed) across the active goal.
-    var nextUpcomingTask: Task? {
-        activeGoal?.allTasks.first { $0.status != .completed }
-    }
-
-    /// Today's tasks — tasks with deadlines today or overdue.
-    var todaysTasks: [Task] {
-        guard let goal = activeGoal else { return [] }
-        let today = Calendar.current.startOfDay(for: Date())
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
-        return goal.allTasks.filter { task in
-            guard let dl = task.deadline else { return false }
-            return dl < tomorrow && task.status != .completed
-        }
-    }
-
-    /// Total focus time today in seconds.
-    var todayFocusSeconds: Int {
-        let today = Calendar.current.startOfDay(for: Date())
-        return focusSessions
-            .filter { !$0.isBreak && Calendar.current.startOfDay(for: $0.startedAt) == today }
-            .reduce(0) { $0 + $1.secondsElapsed }
-    }
-
-    var timerProgress: Double {
-        guard timerSecondsTotal > 0 else { return 0 }
-        return 1 - Double(timerSecondsRemaining) / Double(timerSecondsTotal)
     }
 }

@@ -48,27 +48,46 @@ struct LockedInApp: App {
 
     @ViewBuilder
     private var menuBarLabel: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 13, weight: .semibold))
+        HStack(spacing: 5) {
+            if vm.showNearestTaskInMenuBar, let task = vm.nearestTargetTask, let dl = task.targetDeadline {
+                // Alternating View A (every 5 seconds): Most Near Target Task
+                Image(systemName: "checklist")
+                    .font(.system(size: 11, weight: .semibold))
+                Text(task.title)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .frame(maxWidth: 130, alignment: .leading)
+                Text(dl.formattedYYMMDD)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                if let days = task.daysRemaining {
+                    Text("(\(days)d)")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                }
+            } else {
+                // Alternating View B (every 5 seconds): Overall Goal Remaining Time
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 11, weight: .semibold))
 
-            if vm.settings.showCountdownInMenuBar,
-               let days = vm.activeGoal?.daysRemaining {
-                Text("\(days)d")
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-            }
+                if let goal = vm.activeGoal {
+                    if let dl = goal.targetDeadline {
+                        Text(dl.formattedYYMMDD)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    }
 
-            if vm.settings.showProgressInMenuBar,
-               let goal = vm.activeGoal {
-                Text("\(Int(goal.overallProgress * 100))%")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-            }
+                    if vm.settings.showCountdownInMenuBar,
+                       let days = goal.daysRemaining {
+                        Text("(\(days)d)")
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    }
 
-            // Timer indicator when running
-            if vm.timerState == .running || vm.timerState == .paused {
-                Circle()
-                    .fill(vm.timerState == .running ? Color.green : Color.orange)
-                    .frame(width: 6, height: 6)
+                    if vm.settings.showProgressInMenuBar {
+                        Text("\(Int(goal.overallProgress * 100))%")
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    }
+                } else {
+                    Text("LockedIn")
+                        .font(.system(size: 11, weight: .medium))
+                }
             }
         }
     }

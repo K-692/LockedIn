@@ -1,15 +1,16 @@
 # LockedIn: System Architecture, State Machine & Execution Flow
 
 > **Tagline**: Focus on what matters.  
-> **Status**: Production Architecture & Native macOS Implementation (v1.0.0)  
+> **Status**: Production Architecture & Native macOS Implementation (v1.0.0 Universal)  
 > **Target Platform**: macOS 13.0+ (Ventura, Sonoma, Sequoia)  
 > **Core Framework**: Swift 5.9+ / SwiftUI / AppKit / Combine / UserNotifications  
+> **Architecture**: Universal Mach-O (arm64 + x86_64)
 
 ---
 
 ## 1. Executive Summary & Domain-Neutral Ontology
 
-**LockedIn** is a native, distraction-resistant goal governance, hierarchical task management, target deadline countdown, and focus tracking environment. While historically motivated by high-stakes multi-year efforts (such as doctoral dissertations, licensing examinations, and large-scale engineering deliverables), **LockedIn** enforces a strictly domain-neutral data model and user interface ontology.
+**LockedIn** is a native, distraction-resistant goal governance, hierarchical task management, and target deadline countdown environment. Built with pure SwiftUI and AppKit primitives, **LockedIn** enforces a strictly domain-neutral data model and user interface ontology, allowing it to adapt to arbitrary personal, academic, engineering, fitness, and professional pursuits without code alteration.
 
 ### 1.1 Generalized Entity Mapping
 
@@ -17,13 +18,13 @@ The system strictly avoids hardcoded academic or domain jargon across all layers
 
 | Canonical Entity | Formal Definition | Operational Role |
 | :--- | :--- | :--- |
-| **Goal** | The overarching high-order outcome to be achieved | Root entity encapsulating categories, target deadline, and cumulative progress |
-| **Target Deadline** | The temporal upper bound ($T_{\text{target}}$) for goal completion | Drives discrete temporal delta countdown ($\Delta t = T_{\text{target}} - T_{\text{now}}$) |
-| **Category** | A user-defined taxonomy partition | Arbitrary grouping mechanism with dedicated chromatic identity |
-| **Milestone** | A non-fungible checkpoint indicating substantive state transition | High-visibility priority anchor alerting user upon state completion |
-| **Task & Subtask** | Actionable atomic and composite work units | State-bearing units of execution with optional deadlines and status vectors |
-| **Overall Progress** | Weighted progress metric across all eligible leaf tasks | Formal completion ratio: $P = \frac{\sum w_i \cdot \mathbb{I}(\text{status}_i = \text{completed})}{\sum w_i}$ |
-| **Focus Timer** | Pomodoro-style interval governor | Task-anchored focus cycles with automated break scheduling and persistence |
+| **Goal** | The overarching high-order outcome to be achieved | Root entity encapsulating categories, target deadline, and cumulative progress. Every goal is fully editable. |
+| **Target Deadline** | The temporal upper bound ($T_{\text{target}}$) for goal completion | Drives discrete temporal delta countdown ($\Delta t = T_{\text{target}} - T_{\text{now}}$). Formatted as `YY-MM-DD`. |
+| **Category** | A user-defined taxonomy partition | Arbitrary grouping mechanism with dedicated chromatic identity and completion ring. |
+| **Milestone** | A non-fungible checkpoint indicating substantive state transition | High-visibility priority anchor alerting user upon state completion. |
+| **Task & Subtask** | Actionable atomic and composite work units | State-bearing units of execution with quick inline creation, optional deadlines (`YY-MM-DD`), and status vectors. |
+| **Overall Progress** | Weighted progress metric across all eligible leaf tasks | Formal completion ratio: $P = \frac{\sum w_i \cdot \mathbb{I}(\text{status}_i = \text{completed})}{\sum w_i}$. |
+| **Menu Bar Ticker** | Dual-phase 5-second alternating state extra | Periodically alternates between overall goal deadline and nearest upcoming target task. |
 
 ---
 
@@ -42,8 +43,8 @@ LockedIn follows an Unidirectional Data Flow (UDF) MVVM architecture with local-
         +-------------------------+                         +-------------------------+
         |   Main Window (SwiftUI) |                         |  Menu Bar Extra Popover |
         |   - DashboardView       |                         |  - Mini Dashboard       |
-        |   - AddTasksView        |                         |  - Mini Focus Timer     |
-        |   - SettingsView        |                         |  - Mini Task List       |
+        |   - AddTasksView        |                         |  - Upcoming Tasks List  |
+        |   - SettingsView        |                         |  - Alternating Ticker   |
         +------------+------------+                         +------------+------------+
                      |                                                   |
                      +-------------------------+-------------------------+
@@ -59,11 +60,10 @@ LockedIn follows an Unidirectional Data Flow (UDF) MVVM architecture with local-
                v                                v                                v
   +-------------------------+      +-------------------------+      +-------------------------+
   |   Domain Models         |      |   PersistenceService    |      |   NotificationService   |
-  |   - Goal                |      |   - Atomic File I/O     |      |   - Deadline Warnings   |
-  |   - Category            |      |   - JSON Serialization  |      |   - Session Completion  |
-  |   - Task & Subtask      |      |   - Backup & Restore    |      |   - Milestone Triggers  |
-  |   - FocusSession        |      +-------------------------+      +-------------------------+
-  |   - AppSettings         |
+  |   - Goal (Editable)     |      |   - Atomic File I/O     |      |   - Deadline Warnings   |
+  |   - Category            |      |   - JSON Serialization  |      |   - Milestone Triggers  |
+  |   - Task & Subtask      |      |   - Backup & Restore    |      +-------------------------+
+  |   - AppSettings         |      +-------------------------+
   +-------------------------+
 ```
 
@@ -79,183 +79,125 @@ LockedIn enforces exactly three primary navigation tabs:
 +-----------------------------------------------------------------------------------+
 ```
 
-1. **Dashboard (`DashboardView`)**:
-   - Prominent Target Deadline Countdown badge with dynamic urgency chromatic cues ($<30$ days $\to$ warning amber; overdue $\to$ alert crimson).
-   - Overall Progress Ring and task completion quadrant (Completed, In Progress, Not Started, Daily Focus).
-   - Active Task focal card with 1-click focus session ignition.
-   - Interactive Pomodoro Focus Timer with circular sweep animation and session cadence indicators.
-   - Upcoming actionable task feed and milestone checkpoint ledger.
+### 3.1 Tab 1: Dashboard (`DashboardView`)
+- **Target Deadline Countdown**: Prominent countdown pill displaying target date formatted as `YY-MM-DD` and delta days remaining. Urgency cues highlight milestones within 14 days or overdue.
+- **Goal Editor Access**: Direct "Edit Goal" button enabling instantaneous title and target deadline adjustments.
+- **Overall Progress Ring**: Visual completion ring reflecting aggregated progress across all categories and tasks.
+- **Next Upcoming Target Task**: Dedicated focus card showing the nearest incomplete task with deadline, priority badge, and quick completion toggle.
+- **Upcoming Tasks Feed & Milestones**: Chronologically ordered work queue with strict `YY-MM-DD` date formatting.
 
-2. **Add Tasks (`AddTasksView`)**:
-   - Master-Detail Goal navigation drawer.
-   - Hierarchical category accordions featuring category-specific progress rings and custom color badges.
-   - Task row controls: status cycle toggle, milestone pin, subtask progress tally, priority indicators, and contextual action menus.
-   - Modal management sheets (`GoalFormSheet`, `CategoryFormSheet`, `TaskFormSheet`) with granular subtask builder and date picker bindings.
+### 3.2 Tab 2: Add Tasks (`AddTasksView`)
+- **Master-Detail Goal Drawer**: Sidebar listing all user goals with quick selection and editing modals.
+- **Inline Task Quick-Add**: Direct text input bar within every category card; pressing Return immediately persists the task into the category without opening modals.
+- **Detailed Modal Sheets**: Single-coordinator sheet system (`AddTasksSheet`) preventing SwiftUI modal collisions.
+- **Category Accordions**: Category progress rings, customizable color tags, task count badges, and bulk actions.
+- **Task Row Controls**: Status toggle (`Not Started` $\to$ `In Progress` $\to$ `Completed`), milestone pin toggle, subtask counter, priority flag, and inline notes.
 
-3. **Settings (`SettingsView`)**:
-   - Target Deadline configuration and recalibration per goal.
-   - Appearance override switcher: **System**, **Light**, and **Dark** with instantaneous SwiftUI color scheme propagation.
-   - Notification dispatch schedules and threshold warnings.
-   - Menu Bar display toggles (countdown pill, progress percentage).
-   - Pomodoro interval tuners (Focus, Short Break, Long Break, Cycle count).
-   - System auto-launch integration.
-   - One-click JSON backup export and safety-confirmed restore workflow.
+### 3.3 Tab 3: Settings (`SettingsView`)
+- **Clean Grouped Architecture**: Redesigned layout organized into distinct, elevated configuration cards.
+- **Active Goal & Deadline Management**: Direct editing of active goal name, target date (`YY-MM-DD`), and multi-goal switcher.
+- **Appearance Selector**: Native **System**, **Light**, and **Dark** selector without harsh blue borders.
+- **Menu Bar Ticker Controls**: Toggles for countdown display, progress percentage, and dual-phase alternation.
+- **Notifications & Thresholds**: Granular control over task deadline alerts and goal milestone warnings.
+- **Data Management**: Full offline JSON export and safe transactional restore.
 
 ---
 
-## 4. Mathematical Formulations & State Machine
+## 4. State Machines & Discrete Transition Logic
 
-### 4.1 Temporal Countdown Calculation
+### 4.1 Menu Bar 5-Second Alternating Ticker (DFA)
 
-Given a target deadline timestamp $T_{\text{target}} \in \mathbb{R}^+$ and current system clock $T_{\text{now}}$:
-
-$$\Delta t_{\text{seconds}} = T_{\text{target}} - T_{\text{now}}$$
-
-$$\text{Days Remaining} = \left\lfloor \frac{\Delta t_{\text{seconds}}}{86400} \right\rfloor$$
-
-$$\text{Status} = \begin{cases} 
-\text{Overdue}, & \text{if } \Delta t_{\text{seconds}} < 0 \\
-\text{Imminent}, & \text{if } 0 \le \text{Days Remaining} \le 14 \\
-\text{Normal}, & \text{otherwise}
-\end{cases}$$
-
-### 4.2 Weighted Hierarchical Progress
-
-For any goal $G$ containing categories $C_1, \dots, C_m$, let $\mathcal{L}(G)$ denote the flattened multiset of all leaf work items:
-
-$$\mathcal{L}(G) = \bigcup_{k} \text{leafTasks}(T_k)$$
-
-The cumulative progress $P(G) \in [0.0, 1.0]$ is defined as:
-
-$$P(G) = \frac{|\{t \in \mathcal{L}(G) \mid \text{status}(t) = \text{completed}\}|}{|\mathcal{L}(G)|}$$
-
-If $|\mathcal{L}(G)| = 0$, $P(G) \equiv 0$.
-
-### 4.3 Focus Timer State Transitions
-
-The focus governor operates as a deterministic finite automaton (DFA):
+The menu bar item operates on a discrete 5-second clock pulse to maximize information density in a compact space:
 
 ```
-     +--------------------------+
-     |           IDLE           |<------------------------------+
-     +------------+-------------+                               |
-                  |                                             |
-             startTimer()                                       |
-                  v                                             |
-     +--------------------------+        pauseTimer()           |
-     |         RUNNING          |-------------------+           |
-     +------------+-------------+                   |           |
-                  |                                 v           |
-             tick == 0                     +-----------------+  |
-                  |                        |     PAUSED      |  |
-                  v                        +--------+--------+  |
-     +--------------------------+                   |           |
-     |        COMPLETED         |             resumeTimer()     |
-     +------------+-------------+                   |           |
-                  |                                 +----------->
-                  v                                 |
-       (Check Cycle Cadence)                        | stopTimer()
-      /                     \                       |
-     v                       v                      |
-[Short Break]          [Long Break]                 |
-     |                       |                      |
-     +----------->-----------+----------------------+
+         +------------------------------------------------------------+
+         |                                                            |
+         v                                                            |
++--------------------------------+   Clock Tick (5s)   +--------------------------------+
+|       STATE A: GOAL MODE       | ------------------> |       STATE B: TASK MODE       |
+|                                |                     |                                |
+| Displays:                      |                     | Displays:                      |
+| [lock.fill] YY-MM-DD (Xd) X%   | <------------------ | [checklist] TaskTitle YY-MM-DD |
++--------------------------------+   Clock Tick (5s)   +--------------------------------+
+         |                                                            ^
+         |                    No Tasks with Deadlines                 |
+         +------------------------------------------------------------+
+```
+
+1. **State A (Goal Countdown)**:
+   - Evaluated when `showNearestTaskInMenuBar == false` or when no incomplete tasks have an explicit deadline.
+   - Shows: `[lock.fill]` + Goal target deadline (`YY-MM-DD`) + remaining days (`(142d)`) + overall completion percentage.
+2. **State B (Nearest Target Task)**:
+   - Evaluated when `showNearestTaskInMenuBar == true` AND `nearestTargetTask != nil`.
+   - Resolves: $\min_{t \in T_{\text{incomplete}}} \{ t.\text{deadline} \}$.
+   - Shows: `[checklist]` + truncated task title + task deadline (`YY-MM-DD`) + days remaining.
+
+### 4.2 Task Lifecycle State Machine
+
+```
+         +----------------------+
+         |     Not Started      |
+         +----------+-----------+
+                    |
+     Start Work     |     Mark Done
+         v          |         v
++-----------------+ | +-----------------+
+|   In Progress   | | |    Completed    |
++--------+--------+ | +--------+--------+
+         |          |          |
+         +----+-----+          |
+              |                |
+              v                |
+        +------------+         |
+        |  On Hold   | --------+
+        +------------+
+```
+
+### 4.3 Task Creation Dual-Path
+
+```
+                                  +---------------------+
+                                  |  Add Task Trigger   |
+                                  +----------+----------+
+                                             |
+                      +----------------------+----------------------+
+                      |                                             |
+                      v                                             v
+        +----------------------------+                +----------------------------+
+        | Inline Quick-Add Path      |                | Modal Form Sheet Path      |
+        | - Enter title in TextField |                | - Set title & notes        |
+        | - Press Return / Save      |                | - Assign priority          |
+        | - Default: Today / Medium  |                | - Set deadline (YY-MM-DD)  |
+        | - Instant local sync       |                | - Add granular subtasks    |
+        +----------------------------+                +----------------------------+
 ```
 
 ---
 
-## 5. Local-First Persistence & Storage Architecture
+## 5. Universal macOS Compilation & Deployment Pipeline
 
-- **Path**: `~/Library/Application Support/LockedIn/`
-- **Files**:
-  - `goals.json`: Hierarchical structure of goals, categories, tasks, subtasks, deadlines.
-  - `settings.json`: User appearance choices, notification preferences, timer settings, onboarding flags.
-  - `sessions.json`: Historical log of completed focus intervals with timestamps and duration.
-- **Transactions**: Atomic write guarantees (`Data.WritingOptions.atomic`) ensuring crash-safe updates without corrupting existing trees.
-- **Portability**: Complete JSON backup export and import allowing zero-dependency manual migration across devices.
+LockedIn produces a unified Universal 2 binary packaging arm64 (Apple Silicon) and x86_64 (Intel) architectures into a DMG:
+
+```
+1. swift build -c release --triple arm64-apple-macosx13.0
+2. swift build -c release --triple x86_64-apple-macosx13.0
+3. lipo -create .build/.../arm64/LockedIn .build/.../x86_64/LockedIn -output LockedIn.app/Contents/MacOS/LockedIn
+4. Generate AppIcon.icns via iconutil from multi-resolution iconset
+5. Apply ad-hoc signature: codesign --force --deep --sign - LockedIn.app
+6. Stage volume & generate UDZO compressed image: LockedIn-Universal.dmg
+```
 
 ---
 
-## 6. Implementation Milestones & Verification Matrix
+## 6. Implementation Journey & Refactoring History
 
-| Component | Status | Verification Mechanism |
+| Phase | Objectives | Outcome |
 | :--- | :--- | :--- |
-| **Domain-Neutral Models** | Verified | Swift Concurrency / Codable serialization validation |
-| **AppViewModel State Store** | Verified | Reactive state publishing & atomic persistence |
-| **Three Primary Tabs** | Verified | Single top-level segmented container navigation |
-| **Dynamic Appearance** | Verified | Semantic NSColor and ColorScheme overrides (Light/Dark/System) |
-| **Persistent Menu Bar Extra** | Verified | Continuous countdown, progress pill, and mini-utility |
-| **Onboarding Flow** | Verified | Multi-stage neutral setup with bypass option |
-| **CLI & SPM Compilation** | Verified | `swift build` passes with zero warnings / errors |
-| **Universal Binary (arm64 + x86_64)** | Verified | `lipo -create` multi-architecture slice validation |
-| **AppIcon.icns Generation** | Verified | `iconutil` Retina asset compilation from 1024x1024 source |
-| **Universal DMG Packaging** | Verified | `hdiutil` UDZO compressed read-only volume with `/Applications` link |
-| **GitHub Release v1.0.0** | Verified | Hosted on GitHub Releases with direct binary download link |
-| **Xcode Project Configuration** | Verified | Valid PBXProject v14.0 configuration |
+| **Phase 1** | Foundation & Domain-Neutral Schema | Established `Goal`, `Category`, `Task`, `AppSettings`, and atomic JSON persistence. |
+| **Phase 2** | UI Components & 3-Tab Structure | Built `DashboardView`, `AddTasksView`, `SettingsView`, and `MenuBarView`. |
+| **Phase 3** | Universal Packaging & Distribution | Authored `build_dmg.sh`, generated universal binary (arm64 + x86_64), and released DMG. |
+| **Phase 4** | Refinement & Polish | Embedded LockedIn app icon, removed focus timer, removed tab blue borders, enabled inline task creation, enforced `YY-MM-DD` formatting, built 5-second alternating menu bar ticker, and made all goals editable. |
 
 ---
 
-## 7. Universal Binary Compilation & Packaging Pipeline
-
-To guarantee that any Mac user (whether operating Apple Silicon M1/M2/M3/M4 or legacy Intel 64-bit hardware) can execute LockedIn natively without Rosetta 2 emulation:
-
-```
-+------------------------------------+       +------------------------------------+
-|  Apple Silicon Slice (arm64)       |       |  Intel Slice (x86_64)              |
-|  swift build -c release            |       |  swift build -c release            |
-|  --triple arm64-apple-macosx13.0   |       |  --triple x86_64-apple-macosx13.0  |
-+-----------------+------------------+       +-----------------+------------------+
-                  |                                            |
-                  +---------------------+----------------------+
-                                        |
-                                        v
-                           lipo -create -output LockedIn
-                                        |
-                                        v
-                       +---------------------------------+
-                       | Universal Mach-O Binary         |
-                       | [x86_64: 64-bit] [arm64: 64-bit]|
-                       +----------------+----------------+
-                                        |
-       +--------------------------------+--------------------------------+
-       |                                |                                |
-       v                                v                                v
-+-------------+                 +---------------+                 +---------------+
-| Info.plist  |                 | AppIcon.icns  |                 | Resource pkg  |
-+------+------+                 +-------+-------+                 +-------+-------+
-       |                                |                                 |
-       +--------------------------------+---------------------------------+
-                                        |
-                                        v
-                           +------------------------+
-                           |      LockedIn.app      |
-                           |   (Ad-hoc Codesigned)  |
-                           +------------+-----------+
-                                        |
-                                        v
-                 hdiutil create -volname LockedIn -format UDZO
-                                        |
-                                        v
-                           +------------------------+
-                           | LockedIn-Universal.dmg |
-                           |  (6.5 MB Compressed)   |
-                           +------------------------+
-```
-
-### 7.1 Automated DMG Packaging Script
-
-A single-command build pipeline is maintained under [`scripts/build_dmg.sh`](file:///Users/krish/Desktop/K-692/LockedIn/scripts/build_dmg.sh):
-
-```bash
-chmod +x scripts/build_dmg.sh
-./scripts/build_dmg.sh
-```
-
----
-
-## 8. Distribution & Deployment
-
-- **GitHub Release**: [`v1.0.0 (Universal macOS)`](https://github.com/K-692/LockedIn/releases/tag/v1.0.0)
-- **Direct Download Asset**: [`LockedIn-Universal.dmg`](https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg)
-- **Integrity**: Ad-hoc codesigned and verified via `codesign --verify --verbose LockedIn.app`.
-
+*This document serves as the formal state machine and technical reference for academic, engineering, and architectural analysis of LockedIn.*

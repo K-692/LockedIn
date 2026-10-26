@@ -1,10 +1,12 @@
 // MARK: - DashboardView.swift
-// Tab 1: Shows countdown, overall progress, focus timer, and upcoming tasks.
+// Tab 1: Shows countdown, overall progress, active task, and upcoming work.
+// Dates formatted as YY-MM-DD throughout.
 
 import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject var vm: AppViewModel
+    @State private var editingGoal: Goal? = nil
 
     var body: some View {
         ScrollView {
@@ -15,7 +17,6 @@ struct DashboardView: View {
                     goalHeaderCard(goal: goal)
                     progressCard(goal: goal)
                     activeTaskCard(goal: goal)
-                    FocusTimerView()
                     upcomingTasksList(goal: goal)
                     milestonesCard(goal: goal)
                 } else {
@@ -25,6 +26,10 @@ struct DashboardView: View {
             .padding(LKSpacing.lg)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .sheet(item: $editingGoal) { goal in
+            GoalFormSheet(editingGoal: goal)
+                .environmentObject(vm)
+        }
     }
 
     // MARK: - Cards
@@ -32,10 +37,30 @@ struct DashboardView: View {
     private func goalHeaderCard(goal: Goal) -> some View {
         HStack(alignment: .top, spacing: LKSpacing.md) {
             VStack(alignment: .leading, spacing: LKSpacing.xs) {
-                Text("ACTIVE GOAL")
-                    .font(LKFont.caption)
-                    .foregroundColor(.labelSecondary)
-                    .tracking(0.8)
+                HStack(spacing: 6) {
+                    Text("ACTIVE GOAL")
+                        .font(LKFont.caption)
+                        .foregroundColor(.labelSecondary)
+                        .tracking(0.8)
+
+                    Button {
+                        editingGoal = goal
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 10))
+                            Text("Edit")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.1))
+                        .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Edit Goal Name & Target Deadline")
+                }
 
                 Text(goal.name)
                     .font(LKFont.largeTitle)
@@ -43,8 +68,7 @@ struct DashboardView: View {
                     .lineLimit(2)
 
                 if let deadline = goal.targetDeadline {
-                    Label(deadline.formatted(date: .long, time: .omitted),
-                          systemImage: "calendar")
+                    Label("Target: \(deadline.formattedYYMMDD)", systemImage: "calendar")
                         .font(LKFont.caption)
                         .foregroundColor(.labelSecondary)
                 }
@@ -54,6 +78,7 @@ struct DashboardView: View {
 
             CountdownDisplay(
                 daysRemaining: goal.daysRemaining,
+                targetDate: goal.targetDeadline,
                 isOverdue: goal.isOverdue
             )
         }
@@ -94,10 +119,10 @@ struct DashboardView: View {
                          label: "Not Started",
                          icon: "circle",
                          color: .gray)
-                statCell(value: "\(vm.todayFocusSeconds / 60)m",
-                         label: "Today's Focus",
-                         icon: "flame.fill",
-                         color: .orange)
+                statCell(value: "\(goal.allTasks.filter { $0.isMilestone }.count)",
+                         label: "Milestones",
+                         icon: "flag.fill",
+                         color: .yellow)
             }
         }
         .cardStyle()
@@ -145,8 +170,7 @@ struct DashboardView: View {
                             StatusBadge(status: task.status)
                             PriorityBadge(priority: task.priority)
                             if let dl = task.deadline {
-                                Label(dl.formatted(date: .abbreviated, time: .omitted),
-                                      systemImage: "calendar")
+                                Label("Due: \(dl.formattedYYMMDD)", systemImage: "calendar")
                                     .font(LKFont.caption)
                                     .foregroundColor(task.isOverdue ? .red : .labelSecondary)
                             }
@@ -155,23 +179,32 @@ struct DashboardView: View {
 
                     Spacer()
 
+                    // Quick Toggle Complete Button
                     Button {
-                        vm.activeTaskForTimer = task
-                        vm.startFocusTimer(for: task)
+                        if let cat = goal.categories.first(where: { c in c.tasks.contains(where: { $0.id == task.id }) }) {
+                            vm.toggleTaskStatus(task.id, in: cat.id, goalId: goal.id)
+                        }
                     } label: {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.accentColor)
+                        HStack(spacing: 4) {
+                            Image(systemName: task.status == .completed ? "checkmark.circle.fill" : "circle")
+                            Text(task.status == .completed ? "Done" : "Mark Complete")
+                                .font(LKFont.caption)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(task.status == .completed ? Color.green.opacity(0.15) : Color(NSColor.controlBackgroundColor))
+                        .foregroundColor(task.status == .completed ? .green : .labelPrimary)
+                        .cornerRadius(6)
                     }
                     .buttonStyle(.plain)
-                    .help("Start focus timer for this task")
+                    .help("Toggle task completion")
                 }
                 .padding(LKSpacing.md)
                 .background(Color.accentColor.opacity(0.05))
                 .cornerRadius(LKRadius.md)
                 .overlay(
                     RoundedRectangle(cornerRadius: LKRadius.md)
-                        .stroke(Color.accentColor.opacity(0.2), lineWidth: 1)
+                        .stroke(Color(NSColor.separatorColor).opacity(0.25), lineWidth: 1)
                 )
             } else {
                 Text("All tasks completed! 🎉")
@@ -185,7 +218,7 @@ struct DashboardView: View {
 
     private func upcomingTasksList(goal: Goal) -> some View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
-            SectionHeader(title: "Upcoming")
+            SectionHeader(title: "Upcoming Tasks")
 
             let upcoming = goal.allTasks
                 .filter { $0.status != .completed }
@@ -219,7 +252,7 @@ struct DashboardView: View {
             Spacer()
 
             if let dl = task.deadline {
-                Text(dl.formatted(date: .abbreviated, time: .omitted))
+                Text(dl.formattedYYMMDD)
                     .font(LKFont.caption)
                     .foregroundColor(task.isOverdue ? .red : .labelSecondary)
             }
@@ -247,8 +280,14 @@ struct DashboardView: View {
                             .foregroundColor(.labelPrimary)
                             .strikethrough(m.status == .completed)
                         Spacer()
+                        if let dl = m.deadline {
+                            Text(dl.formattedYYMMDD)
+                                .font(LKFont.caption)
+                                .foregroundColor(.labelSecondary)
+                        }
                         StatusBadge(status: m.status)
                     }
+                    .padding(.vertical, 2)
                 }
             }
             .cardStyle()
@@ -258,12 +297,29 @@ struct DashboardView: View {
     // MARK: - Empty State
 
     private var emptyGoalState: some View {
-        EmptyStateView(
-            icon: "target",
-            title: "No goal yet",
-            message: "Add a goal in the Add Tasks tab to get started.",
-            action: { vm.selectedTab = 1 },
-            actionLabel: "Add Goal"
-        )
+        VStack(spacing: LKSpacing.md) {
+            AppIconView(size: 64, cornerRadius: 14)
+
+            Text("No goal yet")
+                .font(LKFont.title2)
+                .foregroundColor(.labelPrimary)
+
+            Text("Define your first goal in the Add Tasks tab to get started.")
+                .font(LKFont.body)
+                .foregroundColor(.labelSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 280)
+
+            Button {
+                vm.selectedTab = 1
+            } label: {
+                Text("Add Goal")
+                    .font(LKFont.headline)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(LKSpacing.xl)
     }
 }

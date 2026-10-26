@@ -1,5 +1,6 @@
 // MARK: - FormSheets.swift
-// Modal form sheets for creating/editing goals, categories, and tasks.
+// Modal form sheets for creating and editing goals, categories, and tasks.
+// All dates formatted strictly as YY-MM-DD.
 
 import SwiftUI
 
@@ -23,7 +24,7 @@ struct GoalFormSheet: View {
 
             Form {
                 Section("Goal Details") {
-                    TextField("Goal name (e.g. Finish my project)", text: $name)
+                    TextField("Goal name (e.g. Complete my project)", text: $name)
 
                     Toggle("Set a target deadline", isOn: $hasDeadline)
 
@@ -32,6 +33,15 @@ struct GoalFormSheet: View {
                                    selection: $targetDeadline,
                                    in: Date()...,
                                    displayedComponents: .date)
+
+                        HStack {
+                            Text("Selected Target Date:")
+                                .font(LKFont.caption)
+                                .foregroundColor(.labelSecondary)
+                            Text(targetDeadline.formattedYYMMDD)
+                                .font(LKFont.mono)
+                                .foregroundColor(.accentColor)
+                        }
                     }
                 }
             }
@@ -43,7 +53,7 @@ struct GoalFormSheet: View {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(.bordered)
                 Spacer()
-                Button(isEditing ? "Save" : "Create Goal") {
+                Button(isEditing ? "Save Changes" : "Create Goal") {
                     commit()
                 }
                 .buttonStyle(.borderedProminent)
@@ -51,7 +61,7 @@ struct GoalFormSheet: View {
             }
             .padding(LKSpacing.md)
         }
-        .frame(width: 420, height: 300)
+        .frame(width: 440, height: 320)
         .onAppear {
             if let g = editingGoal {
                 name = g.name
@@ -111,16 +121,12 @@ struct CategoryFormSheet: View {
                             .foregroundColor(.labelSecondary)
                         HStack(spacing: LKSpacing.sm) {
                             ForEach(palette, id: \.self) { hex in
-                                Circle()
-                                    .fill(Color(hex: hex) ?? .accentColor)
-                                    .frame(width: 24, height: 24)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white, lineWidth: colorHex == hex ? 3 : 0)
-                                    )
-                                    .shadow(color: Color(hex: hex)?.opacity(0.4) ?? .clear,
-                                            radius: colorHex == hex ? 4 : 0)
-                                    .onTapGesture { colorHex = hex }
+                                ColorSwatchView(
+                                    hex: hex,
+                                    isSelected: colorHex == hex
+                                ) {
+                                    colorHex = hex
+                                }
                             }
                         }
                     }
@@ -134,7 +140,7 @@ struct CategoryFormSheet: View {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(.bordered)
                 Spacer()
-                Button(isEditing ? "Save" : "Create Category") { commit() }
+                Button(isEditing ? "Save Changes" : "Create Category") { commit() }
                     .buttonStyle(.borderedProminent)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -215,9 +221,18 @@ struct TaskFormSheet: View {
                     Toggle("Has Deadline", isOn: $hasDeadline)
 
                     if hasDeadline {
-                        DatePicker("Deadline",
+                        DatePicker("Deadline Date",
                                    selection: $deadline,
                                    displayedComponents: .date)
+
+                        HStack {
+                            Text("Target Date:")
+                                .font(LKFont.caption)
+                                .foregroundColor(.labelSecondary)
+                            Text(deadline.formattedYYMMDD)
+                                .font(LKFont.mono)
+                                .foregroundColor(.accentColor)
+                        }
                     }
                 }
 
@@ -247,7 +262,7 @@ struct TaskFormSheet: View {
                             .onSubmit { addSubtask() }
                         Button("Add") { addSubtask() }
                             .buttonStyle(.borderless)
-                            .disabled(newSubtask.isEmpty)
+                            .disabled(newSubtask.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
             }
@@ -259,22 +274,22 @@ struct TaskFormSheet: View {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(.bordered)
                 Spacer()
-                Button(isEditing ? "Save" : "Add Task") { commit() }
+                Button(isEditing ? "Save Changes" : "Add Task") { commit() }
                     .buttonStyle(.borderedProminent)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(LKSpacing.md)
         }
-        .frame(width: 460, height: 560)
+        .frame(width: 480, height: 580)
         .onAppear {
             if let t = editingTask {
-                title        = t.title
-                notes        = t.notes
-                status       = t.status
-                priority     = t.priority
-                hasDeadline  = t.deadline != nil
-                deadline     = t.deadline ?? Date()
-                isMilestone  = t.isMilestone
+                title         = t.title
+                notes         = t.notes
+                status        = t.status
+                priority      = t.priority
+                hasDeadline   = t.deadline != nil
+                deadline      = t.deadline ?? Date()
+                isMilestone   = t.isMilestone
                 subtaskTitles = t.subtasks.map { $0.title }
             }
         }
@@ -330,3 +345,23 @@ func formHeader(title: String) -> some View {
     }
     .padding(LKSpacing.md)
 }
+
+// MARK: - ColorSwatchView
+
+private struct ColorSwatchView: View {
+    let hex: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    var body: some View {
+        Circle()
+            .fill(Color(hex: hex) ?? .accentColor)
+            .frame(width: 24, height: 24)
+            .overlay(
+                Circle()
+                    .stroke(Color.white, lineWidth: isSelected ? 3 : 0)
+            )
+            .onTapGesture(perform: onSelect)
+    }
+}
+

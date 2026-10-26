@@ -1,6 +1,6 @@
 // MARK: - PersistenceService.swift
 // Handles all local data storage using JSON serialisation.
-// No domain assumptions — stores goals and settings generically.
+// Stores goals and settings generically and atomically.
 
 import Foundation
 
@@ -15,7 +15,6 @@ final class PersistenceService {
 
     private static var goalsURL: URL    { documentsURL.appendingPathComponent("goals.json") }
     private static var settingsURL: URL { documentsURL.appendingPathComponent("settings.json") }
-    private static var sessionsURL: URL { documentsURL.appendingPathComponent("sessions.json") }
 
     // MARK: - Setup
 
@@ -51,18 +50,14 @@ final class PersistenceService {
         return settings
     }
 
-    // MARK: - Focus Sessions
+    // MARK: - Storage Path Info
 
-    static func saveSessions(_ sessions: [FocusSession]) {
-        ensureDirectoryExists()
-        guard let data = try? JSONEncoder().encode(sessions) else { return }
-        try? data.write(to: sessionsURL, options: .atomic)
+    static var storagePathDescription: String {
+        documentsURL.path
     }
 
-    static func loadSessions() -> [FocusSession] {
-        guard let data = try? Data(contentsOf: sessionsURL),
-              let sessions = try? JSONDecoder().decode([FocusSession].self, from: data) else { return [] }
-        return sessions
+    static var documentsDirectory: URL {
+        documentsURL
     }
 
     // MARK: - Backup & Restore
@@ -70,9 +65,8 @@ final class PersistenceService {
     /// Exports all app data as a single JSON bundle.
     static func exportBackup() -> Data? {
         let bundle: [String: Any] = [
-            "goals":    (try? JSONEncoder().encode(loadGoals())).map { $0.base64EncodedString() } ?? "",
-            "settings": (try? JSONEncoder().encode(loadSettings())).map { $0.base64EncodedString() } ?? "",
-            "sessions": (try? JSONEncoder().encode(loadSessions())).map { $0.base64EncodedString() } ?? "",
+            "goals":      (try? JSONEncoder().encode(loadGoals())).map { $0.base64EncodedString() } ?? "",
+            "settings":   (try? JSONEncoder().encode(loadSettings())).map { $0.base64EncodedString() } ?? "",
             "exportedAt": ISO8601DateFormatter().string(from: Date())
         ]
         return try? JSONSerialization.data(withJSONObject: bundle, options: .prettyPrinted)
@@ -92,11 +86,6 @@ final class PersistenceService {
            let settingsData = Data(base64Encoded: settingsB64),
            let settings = try? JSONDecoder().decode(AppSettings.self, from: settingsData) {
             saveSettings(settings)
-        }
-        if let sessionsB64 = bundle["sessions"] as? String,
-           let sessionsData = Data(base64Encoded: sessionsB64),
-           let sessions = try? JSONDecoder().decode([FocusSession].self, from: sessionsData) {
-            saveSessions(sessions)
         }
         return true
     }

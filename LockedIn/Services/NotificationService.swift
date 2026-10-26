@@ -48,22 +48,6 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
-    // MARK: - Focus Timer Complete
-
-    static func sendFocusCompleteNotification(taskTitle: String, isBreak: Bool) {
-        let content = UNMutableNotificationContent()
-        if isBreak {
-            content.title = "☕ Break's over"
-            content.body  = "Ready to focus on \"\(taskTitle)\"?"
-        } else {
-            content.title = "✅ Focus session complete"
-            content.body  = "Great work on \"\(taskTitle)\". Take a break!"
-        }
-        content.sound = .default
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request  = UNNotificationRequest(identifier: "focus-complete-\(UUID())", content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request)
-    }
 
     // MARK: - Milestone Reached
 

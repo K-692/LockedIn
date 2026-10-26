@@ -161,31 +161,88 @@ struct PriorityBadge: View {
     }
 }
 
+// MARK: - Color Hex Initializer
+
+extension Color {
+    init?(hex: String) {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
+
+        let length = hexSanitized.count
+        let r, g, b, a: Double
+        if length == 6 {
+            r = Double((rgb & 0xFF0000) >> 16) / 255.0
+            g = Double((rgb & 0x00FF00) >> 8) / 255.0
+            b = Double(rgb & 0x0000FF) / 255.0
+            a = 1.0
+        } else if length == 8 {
+            r = Double((rgb & 0xFF000000) >> 24) / 255.0
+            g = Double((rgb & 0x00FF0000) >> 16) / 255.0
+            b = Double((rgb & 0x0000FF00) >> 8) / 255.0
+            a = Double(rgb & 0x000000FF) / 255.0
+        } else {
+            return nil
+        }
+        self.init(.sRGB, red: r, green: g, blue: b, opacity: a)
+    }
+}
+
+// MARK: - Date Formatting (YY-MM-DD)
+
+extension Date {
+    /// Strictly formats date as YY-MM-DD (e.g. 26-10-31)
+    var formattedYYMMDD: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: self)
+    }
+}
+
 // MARK: - Countdown Display
 
 struct CountdownDisplay: View {
     let daysRemaining: Int?
-    let isOverdue: Bool
+    var targetDate: Date? = nil
+    var isOverdue: Bool = false
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(alignment: .trailing, spacing: 3) {
             if let days = daysRemaining {
                 if isOverdue {
-                    Label("Overdue", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundColor(.red)
-                        .font(LKFont.headline)
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text("Overdue")
+                            .font(LKFont.headline)
+                            .foregroundColor(.red)
+                    }
+                    if let targetDate {
+                        Text(targetDate.formattedYYMMDD)
+                            .font(LKFont.mono)
+                            .foregroundColor(.red.opacity(0.85))
+                    }
                 } else {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(days)")
                             .font(LKFont.monoLarge)
-                            .foregroundColor(days < 30 ? .orange : .labelPrimary)
+                            .foregroundColor(days < 14 ? .orange : .labelPrimary)
                         Text("days")
                             .font(LKFont.title2)
                             .foregroundColor(.labelSecondary)
                     }
-                    Text("until target deadline")
-                        .font(LKFont.caption)
-                        .foregroundColor(.labelSecondary)
+                    if let targetDate {
+                        Text("Due: \(targetDate.formattedYYMMDD)")
+                            .font(LKFont.mono)
+                            .foregroundColor(.labelSecondary)
+                    } else {
+                        Text("until deadline")
+                            .font(LKFont.caption)
+                            .foregroundColor(.labelSecondary)
+                    }
                 }
             } else {
                 Text("No deadline set")

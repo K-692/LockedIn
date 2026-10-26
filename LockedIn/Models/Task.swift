@@ -72,6 +72,24 @@ struct Task: Identifiable, Codable, Hashable {
         return Double(completed) / Double(leaves.count)
     }
 
+    /// Compatibility alias for target deadline
+    var targetDeadline: Date? {
+        get { deadline }
+        set { deadline = newValue }
+    }
+
+    var daysRemaining: Int? {
+        guard let dl = deadline else { return nil }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let end   = calendar.startOfDay(for: dl)
+        return calendar.dateComponents([.day], from: start, to: end).day
+    }
+
+    var isCompleted: Bool {
+        status == .completed
+    }
+
     var isOverdue: Bool {
         guard let dl = deadline, status != .completed else { return false }
         return dl < Date()
