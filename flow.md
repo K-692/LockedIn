@@ -187,4 +187,75 @@ The focus governor operates as a deterministic finite automaton (DFA):
 | **Persistent Menu Bar Extra** | Verified | Continuous countdown, progress pill, and mini-utility |
 | **Onboarding Flow** | Verified | Multi-stage neutral setup with bypass option |
 | **CLI & SPM Compilation** | Verified | `swift build` passes with zero warnings / errors |
+| **Universal Binary (arm64 + x86_64)** | Verified | `lipo -create` multi-architecture slice validation |
+| **AppIcon.icns Generation** | Verified | `iconutil` Retina asset compilation from 1024x1024 source |
+| **Universal DMG Packaging** | Verified | `hdiutil` UDZO compressed read-only volume with `/Applications` link |
+| **GitHub Release v1.0.0** | Verified | Hosted on GitHub Releases with direct binary download link |
 | **Xcode Project Configuration** | Verified | Valid PBXProject v14.0 configuration |
+
+---
+
+## 7. Universal Binary Compilation & Packaging Pipeline
+
+To guarantee that any Mac user (whether operating Apple Silicon M1/M2/M3/M4 or legacy Intel 64-bit hardware) can execute LockedIn natively without Rosetta 2 emulation:
+
+```
++------------------------------------+       +------------------------------------+
+|  Apple Silicon Slice (arm64)       |       |  Intel Slice (x86_64)              |
+|  swift build -c release            |       |  swift build -c release            |
+|  --triple arm64-apple-macosx13.0   |       |  --triple x86_64-apple-macosx13.0  |
++-----------------+------------------+       +-----------------+------------------+
+                  |                                            |
+                  +---------------------+----------------------+
+                                        |
+                                        v
+                           lipo -create -output LockedIn
+                                        |
+                                        v
+                       +---------------------------------+
+                       | Universal Mach-O Binary         |
+                       | [x86_64: 64-bit] [arm64: 64-bit]|
+                       +----------------+----------------+
+                                        |
+       +--------------------------------+--------------------------------+
+       |                                |                                |
+       v                                v                                v
++-------------+                 +---------------+                 +---------------+
+| Info.plist  |                 | AppIcon.icns  |                 | Resource pkg  |
++------+------+                 +-------+-------+                 +-------+-------+
+       |                                |                                 |
+       +--------------------------------+---------------------------------+
+                                        |
+                                        v
+                           +------------------------+
+                           |      LockedIn.app      |
+                           |   (Ad-hoc Codesigned)  |
+                           +------------+-----------+
+                                        |
+                                        v
+                 hdiutil create -volname LockedIn -format UDZO
+                                        |
+                                        v
+                           +------------------------+
+                           | LockedIn-Universal.dmg |
+                           |  (6.5 MB Compressed)   |
+                           +------------------------+
+```
+
+### 7.1 Automated DMG Packaging Script
+
+A single-command build pipeline is maintained under [`scripts/build_dmg.sh`](file:///Users/krish/Desktop/K-692/LockedIn/scripts/build_dmg.sh):
+
+```bash
+chmod +x scripts/build_dmg.sh
+./scripts/build_dmg.sh
+```
+
+---
+
+## 8. Distribution & Deployment
+
+- **GitHub Release**: [`v1.0.0 (Universal macOS)`](https://github.com/K-692/LockedIn/releases/tag/v1.0.0)
+- **Direct Download Asset**: [`LockedIn-Universal.dmg`](https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg)
+- **Integrity**: Ad-hoc codesigned and verified via `codesign --verify --verbose LockedIn.app`.
+

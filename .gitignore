@@ -16,3 +16,6 @@ UserInterfaceState.xcuserstate
 *.swp
 *~
 *.tmp
+
+# Distribution disk images
+*.dmg

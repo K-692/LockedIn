@@ -18,7 +18,18 @@
   <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/UI-SwiftUI%20%2F%20AppKit-007AFF?style=flat-square&logo=apple&logoColor=white" alt="SwiftUI" /></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License MIT" /></a>
   <a href="#offline-first"><img src="https://img.shields.io/badge/Privacy-100%25%20Offline%20First-blue?style=flat-square" alt="100% Offline First" /></a>
-  <a href="https://github.com/K-692/LockedIn/stargazers"><img src="https://img.shields.io/badge/%E2%AD%90%20Stars-Welcome-yellow?style=flat-square" alt="Stars" /></a>
+  <a href="https://github.com/K-692/LockedIn/releases/latest"><img src="https://img.shields.io/github/v/release/K-692/LockedIn?style=flat-square&color=00C6FF&label=Release" alt="Latest Release" /></a>
+  <a href="https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg"><img src="https://img.shields.io/badge/Download-Universal%20DMG%20(6.5MB)-success?style=for-the-badge&logo=apple&logoColor=white" alt="Download Universal DMG" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg">
+    <img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_LockedIn_for_macOS_(Universal_DMG)-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Download LockedIn for macOS" />
+  </a>
+</p>
+
+<p align="center">
+  <sub>Compatible with Apple Silicon (M1/M2/M3/M4) & Intel Macs (macOS 13.0+)</sub>
 </p>
 
 ---
@@ -120,24 +131,43 @@ LockedIn/
 
 ## ⚡ Quick Start & Installation
 
-### Prerequisites
-- macOS 13.0 (Ventura) or newer
-- Swift 5.9+ / Command Line Tools or Xcode 14.0+
+### Option 1: Direct Download (Recommended for all Mac users)
+1. Download **[LockedIn-Universal.dmg](https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg)** (Universal binary for both Apple Silicon and Intel Macs).
+2. Open the downloaded `.dmg` file.
+3. Drag **LockedIn.app** into your **Applications** folder.
+4. Launch **LockedIn** from Applications or Spotlight!
 
-### Method 1: Build & Run from Command Line
+*(If macOS displays an unverified developer prompt on first open, right-click `LockedIn.app` and choose **Open**, or allow it in System Settings > Privacy & Security).*
+
+---
+
+### Option 2: Build the Universal DMG from Source
+```bash
+git clone https://github.com/K-692/LockedIn.git
+cd LockedIn
+
+# Compile universal binary (arm64 + x86_64) and create DMG
+./scripts/build_dmg.sh
+```
+
+---
+
+### Option 3: Build & Run from Command Line
 ```bash
 # Clone the repository
 git clone https://github.com/K-692/LockedIn.git
 cd LockedIn
 
-# Build the executable
+# Build the release executable
 swift build -c release
 
 # Launch LockedIn
 .build/release/LockedIn
 ```
 
-### Method 2: Open in Xcode
+---
+
+### Option 4: Open in Xcode
 ```bash
 open LockedIn.xcodeproj
 ```
