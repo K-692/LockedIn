@@ -8,6 +8,8 @@ struct MenuBarView: View {
     @EnvironmentObject var vm: AppViewModel
 
     private let maxListedTasks = 12
+    private let maxContentHeight: CGFloat = 400
+    @State private var contentHeight: CGFloat = 220
 
     var body: some View {
         VStack(spacing: 0) {
@@ -26,6 +28,9 @@ struct MenuBarView: View {
 
             Divider()
 
+            // The MenuBarExtra window sizes itself to its content, and a ScrollView has no
+            // intrinsic height (it collapses to 0). Measure the content and give the scroll
+            // view an explicit height, capped so long lists scroll instead of growing forever.
             ScrollView {
                 Group {
                     if vm.menuBarTab == 1 {
@@ -36,15 +41,20 @@ struct MenuBarView: View {
                 }
                 .padding(LKSpacing.sm)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
+                    }
+                )
             }
-            .frame(maxHeight: 340)
+            .frame(height: min(max(contentHeight, 60), maxContentHeight))
+            .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
 
             Divider()
 
             footerBar
         }
         .frame(width: 330)
-        .animation(.easeInOut(duration: 0.15), value: vm.menuBarTab)
     }
 
     private var pendingCount: Int {
@@ -346,5 +356,14 @@ struct MenuBarView: View {
         if days < 0 { return "Overdue by \(-days) day\(days == -1 ? "" : "s")" }
         if days == 0 { return "Due today!" }
         return "\(days) day\(days == 1 ? "" : "s") remaining"
+    }
+}
+
+// MARK: - Content height measurement
+
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
