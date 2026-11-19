@@ -15,9 +15,10 @@ final class AppIconProvider {
             self.image = img
             return
         }
-        // 2. Try application icon
-        if let appImg = NSApplication.shared.applicationIconImage, appImg.isValid && appImg.size.width > 0 {
-            self.image = appImg
+        // 2. Try the bundled .icns (present in packaged builds)
+        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let icns = NSImage(contentsOf: url) {
+            self.image = icns
             return
         }
         // 3. Fallback to embedded PNG data

@@ -89,7 +89,7 @@ struct ProgressRing: View {
                 .stroke(backgroundColor, lineWidth: lineWidth)
 
             Circle()
-                .trim(from: 0, to: progress)
+                .trim(from: 0, to: min(max(progress, 0), 1))
                 .stroke(
                     LinearGradient(
                         colors: [color, color.opacity(0.7)],
@@ -102,7 +102,7 @@ struct ProgressRing: View {
                 .animation(.easeInOut(duration: 0.5), value: progress)
 
             if showLabel {
-                Text("\(Int(progress * 100))%")
+                Text("\(Int((progress * 100).rounded()))%")
                     .font(labelFont)
                     .fontWeight(.semibold)
                     .foregroundColor(.labelPrimary)
@@ -193,17 +193,98 @@ extension Color {
 // MARK: - Date Formatting (DD-MM-YYYY)
 
 extension Date {
-    /// Formats date strictly as DD-MM-YYYY (e.g. 31-10-2026)
-    var formattedDDMMYYYY: String {
+    /// Shared formatter — DateFormatter is expensive to create, so it is built once.
+    private static let ddmmyyyyFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd-MM-yyyy"
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: self)
+        return formatter
+    }()
+
+    /// Formats date strictly as DD-MM-YYYY (e.g. 31-10-2026)
+    var formattedDDMMYYYY: String {
+        Date.ddmmyyyyFormatter.string(from: self)
     }
 
     /// Alias ensuring DD-MM-YYYY is used everywhere
     var formattedYYMMDD: String {
         formattedDDMMYYYY
+    }
+
+    /// Whole calendar days between two dates (ignores time of day). Negative when `end` is in the past.
+    static func calendarDays(from start: Date, to end: Date) -> Int {
+        let cal = Calendar.current
+        return cal.dateComponents([.day], from: cal.startOfDay(for: start), to: cal.startOfDay(for: end)).day ?? 0
+    }
+}
+
+// MARK: - Interactive Chip Button Style
+// Compact, borderless button with hover + pressed feedback (used for inline row actions).
+
+struct LKChipButtonStyle: ButtonStyle {
+    var tint: Color = .labelSecondary
+    var background: Color = Color(NSColor.controlColor)
+
+    func makeBody(configuration: Configuration) -> some View {
+        ChipBody(configuration: configuration, tint: tint, background: background)
+    }
+
+    private struct ChipBody: View {
+        let configuration: Configuration
+        let tint: Color
+        let background: Color
+        @State private var hovering = false
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            configuration.label
+                .foregroundColor(tint)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(background.opacity(hovering ? 1 : 0.7))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .stroke(tint.opacity(hovering ? 0.35 : 0), lineWidth: 0.8)
+                )
+                .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.4)
+                .scaleEffect(configuration.isPressed ? 0.96 : 1)
+                .contentShape(Rectangle())
+                .onHover { hovering = $0 }
+                .animation(.easeOut(duration: 0.12), value: hovering)
+        }
+    }
+}
+
+extension ButtonStyle where Self == LKChipButtonStyle {
+    static var lkChip: LKChipButtonStyle { LKChipButtonStyle() }
+    static var lkDestructiveChip: LKChipButtonStyle { LKChipButtonStyle(tint: .red, background: Color.red.opacity(0.12)) }
+    static var lkAccentChip: LKChipButtonStyle { LKChipButtonStyle(tint: .accentColor, background: Color.accentColor.opacity(0.12)) }
+    static var lkGreenChip: LKChipButtonStyle { LKChipButtonStyle(tint: .green, background: Color.green.opacity(0.12)) }
+}
+
+// MARK: - Hover Highlight
+
+struct HoverHighlight: ViewModifier {
+    var cornerRadius: CGFloat = 6
+    @State private var hovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.primary.opacity(hovering ? 0.05 : 0))
+            )
+            .onHover { hovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+}
+
+extension View {
+    func hoverHighlight(cornerRadius: CGFloat = 6) -> some View {
+        modifier(HoverHighlight(cornerRadius: cornerRadius))
     }
 }
 
@@ -253,7 +334,7 @@ struct CountdownDisplay: View {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.red)
-                        Text("Overdue")
+                        Text("Overdue by \(-days)d")
                             .font(LKFont.headline)
                             .foregroundColor(.red)
                     }
@@ -267,7 +348,7 @@ struct CountdownDisplay: View {
                         Text("\(days)")
                             .font(LKFont.monoLarge)
                             .foregroundColor(days < 14 ? .orange : .labelPrimary)
-                        Text("days")
+                        Text(days == 1 ? "day" : "days")
                             .font(LKFont.title2)
                             .foregroundColor(.labelSecondary)
                     }

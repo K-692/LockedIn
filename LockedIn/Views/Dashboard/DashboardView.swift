@@ -7,6 +7,7 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var vm: AppViewModel
     @State private var editingGoal: Goal? = nil
+    @State private var showNewGoal = false
 
     var body: some View {
         ScrollView {
@@ -24,10 +25,16 @@ struct DashboardView: View {
                 }
             }
             .padding(LKSpacing.lg)
+            .frame(maxWidth: 980)
+            .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(item: $editingGoal) { goal in
             GoalFormSheet(editingGoal: goal)
+                .environmentObject(vm)
+        }
+        .sheet(isPresented: $showNewGoal) {
+            GoalFormSheet(editingGoal: nil)
                 .environmentObject(vm)
         }
     }
@@ -50,13 +57,8 @@ struct DashboardView: View {
                             Text("Edit")
                                 .font(.system(size: 11, weight: .medium))
                         }
-                        .foregroundColor(.labelSecondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color(NSColor.controlColor))
-                        .cornerRadius(4)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.lkChip)
                     .focusable(false)
                     .help("Edit Goal Name & Target Deadline")
                 }
@@ -118,7 +120,7 @@ struct DashboardView: View {
                          label: "Not Started",
                          icon: "circle",
                          color: .gray)
-                statCell(value: "\(goal.allTasks.filter { $0.isMilestone }.count)",
+                statCell(value: "\(goal.allLeafTasks.filter { $0.isMilestone }.count)",
                          label: "Milestones",
                          icon: "flag.fill",
                          color: .yellow)
@@ -180,9 +182,7 @@ struct DashboardView: View {
 
                     // Quick Toggle Complete Button
                     Button {
-                        if let cat = goal.categories.first(where: { c in c.tasks.contains(where: { $0.id == task.id }) }) {
-                            vm.toggleTaskStatus(task.id, in: cat.id, goalId: goal.id)
-                        }
+                        withAnimation(.easeInOut(duration: 0.2)) { vm.toggleTaskInActiveGoal(task.id) }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: task.status == .completed ? "checkmark.circle.fill" : "circle")
@@ -197,11 +197,21 @@ struct DashboardView: View {
                     }
                     .buttonStyle(.plain)
                     .focusable(false)
-                    .help("Toggle task completion")
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .help("Mark the active task complete (⌘↩)")
                 }
                 .padding(LKSpacing.md)
                 .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
                 .cornerRadius(LKRadius.md)
+            } else if goal.allLeafTasks.isEmpty {
+                HStack {
+                    Text("No tasks yet.")
+                        .font(LKFont.body)
+                        .foregroundColor(.labelSecondary)
+                    Button("Add Tasks") { vm.selectedTab = 1 }
+                        .buttonStyle(.borderless)
+                }
+                .padding(LKSpacing.sm)
             } else {
                 Text("All tasks completed! 🎉")
                     .font(LKFont.body)
@@ -209,6 +219,7 @@ struct DashboardView: View {
                     .padding(LKSpacing.md)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
     }
 
@@ -216,9 +227,8 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
             SectionHeader(title: "Upcoming Tasks")
 
-            let upcoming = goal.allTasks
-                .filter { $0.status != .completed }
-                .prefix(5)
+            // Skip the task already featured in the Active Task card.
+            let upcoming = vm.pendingTasksByUrgency.dropFirst().prefix(5)
 
             if upcoming.isEmpty {
                 Text("No upcoming tasks.")
@@ -230,15 +240,28 @@ struct DashboardView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
     }
 
     @ViewBuilder
     private func upcomingTaskRow(task: Task) -> some View {
         HStack(spacing: LKSpacing.sm) {
-            Image(systemName: task.isMilestone ? "flag.fill" : task.status.icon)
-                .foregroundColor(task.isMilestone ? .yellow : .labelSecondary)
-                .frame(width: 16)
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { vm.toggleTaskInActiveGoal(task.id) }
+            } label: {
+                Image(systemName: "circle")
+                    .foregroundColor(.labelSecondary)
+                    .frame(width: 16)
+            }
+            .buttonStyle(.plain)
+            .help("Mark complete")
+
+            if task.isMilestone {
+                Image(systemName: "flag.fill")
+                    .foregroundColor(.yellow)
+                    .font(.system(size: 11))
+            }
 
             Text(task.title)
                 .font(LKFont.body)
@@ -256,12 +279,14 @@ struct DashboardView: View {
             PriorityBadge(priority: task.priority)
         }
         .padding(.vertical, LKSpacing.xs)
+        .padding(.horizontal, 4)
+        .hoverHighlight()
 
         Divider()
     }
 
     private func milestonesCard(goal: Goal) -> some View {
-        let milestones = goal.allTasks.filter { $0.isMilestone }
+        let milestones = goal.allLeafTasks.filter { $0.isMilestone }.sortedByUrgency()
         guard !milestones.isEmpty else { return AnyView(EmptyView()) }
 
         return AnyView(
@@ -284,8 +309,16 @@ struct DashboardView: View {
                         StatusBadge(status: m.status)
                     }
                     .padding(.vertical, 2)
+                    .padding(.horizontal, 4)
+                    .contentShape(Rectangle())
+                    .hoverHighlight()
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) { vm.toggleTaskInActiveGoal(m.id) }
+                    }
+                    .help(m.status == .completed ? "Click to reopen" : "Click to mark complete")
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .cardStyle()
         )
     }
@@ -300,16 +333,16 @@ struct DashboardView: View {
                 .font(LKFont.title2)
                 .foregroundColor(.labelPrimary)
 
-            Text("Define your first goal in the Add Tasks tab to get started.")
+            Text("Define your first goal to start tracking progress toward it.")
                 .font(LKFont.body)
                 .foregroundColor(.labelSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 280)
 
             Button {
-                vm.selectedTab = 1
+                showNewGoal = true
             } label: {
-                Text("Add Goal")
+                Text("Create Goal")
                     .font(LKFont.headline)
             }
             .buttonStyle(.borderedProminent)

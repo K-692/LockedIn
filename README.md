@@ -1,220 +1,180 @@
 <p align="center">
-  <img src="icon/icon.png" width="128" height="128" alt="LockedIn Logo" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0, 198, 255, 0.3);" />
+  <img src="icon/icon.png" width="128" height="128" alt="LockedIn app icon" />
 </p>
 
 <h1 align="center">LockedIn</h1>
 
 <p align="center">
-  <strong>Focus on what matters.</strong>
+  <strong>A native macOS goal tracker that keeps your deadline in sight — right in the menu bar.</strong>
 </p>
 
 <p align="center">
-  A native, distraction-resistant goal governance, hierarchical task management, and target deadline countdown application built with pure SwiftUI for macOS.
+  <a href="https://github.com/K-692/LockedIn/releases/latest"><img src="https://img.shields.io/github/v/release/K-692/LockedIn?style=flat-square&label=release" alt="Latest release" /></a>
+  <img src="https://img.shields.io/badge/macOS-13.0%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 13.0+" />
+  <img src="https://img.shields.io/badge/Swift-5.9%2B-FA7343?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.9+" />
+  <img src="https://img.shields.io/badge/SwiftUI-AppKit-007AFF?style=flat-square" alt="SwiftUI + AppKit" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License" /></a>
 </p>
 
 <p align="center">
-  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9%2B-FA7343?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.9+" /></a>
-  <a href="https://www.apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS%2013.0%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 13.0+" /></a>
-  <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/UI-SwiftUI%20%2F%20AppKit-007AFF?style=flat-square&logo=apple&logoColor=white" alt="SwiftUI" /></a>
-  <a href="#license"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License MIT" /></a>
-  <a href="#privacy"><img src="https://img.shields.io/badge/Privacy-100%25%20Offline%20First-blue?style=flat-square" alt="100% Offline First" /></a>
-  <a href="https://github.com/K-692/LockedIn/releases/latest"><img src="https://img.shields.io/github/v/release/K-692/LockedIn?style=flat-square&color=00C6FF&label=Release" alt="Latest Release" /></a>
-  <a href="https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg"><img src="https://img.shields.io/badge/Download-Universal%20DMG%20(6.5MB)-success?style=for-the-badge&logo=apple&logoColor=white" alt="Download Universal DMG" /></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg">
-    <img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_LockedIn_for_macOS_(Universal_DMG)-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Download LockedIn for macOS" />
-  </a>
-</p>
-
-<p align="center">
-  <sub>Compatible with Apple Silicon (M1/M2/M3/M4) & Intel Macs running macOS 13.0+</sub>
+  <a href="https://github.com/K-692/LockedIn/releases/latest/download/LockedIn-Universal.dmg"><strong>Download for macOS</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#building-from-source">Build from source</a>
+  &nbsp;·&nbsp;
+  <a href="flow.md">Architecture notes</a>
 </p>
 
 ---
 
-## 🌟 Overview
+## Overview
 
-**LockedIn** is engineered to eliminate distraction and preserve relentless forward momentum on high-stakes outcomes that define your career, education, craft, and personal life.
+LockedIn helps you commit to one meaningful outcome — a thesis, a product launch, a certification, a training block — and keep it front of mind until it is done. You define a **goal** with a target date, break it into **categories**, **tasks**, **subtasks** and **milestones**, and LockedIn turns that structure into a live countdown and progress view.
 
-Whether steering a doctoral dissertation, authoring a book, managing an engineering roadmap, passing licensing exams, or executing athletic training blocks, **LockedIn** enforces a strictly **domain-neutral architecture**. You will never find hardcoded academic assumptions or rigid taxonomy. The terminology adapts seamlessly to whatever outcome you choose to conquer.
-
-```
-Goal ──▶ Categories ──▶ Tasks & Subtasks ──▶ Live DD-MM-YYYY Countdown & Menu Bar Ticker
-```
-
----
-
-## ✨ Core Highlights
-
-### 🎯 Domain-Neutral Data Architecture
-- **Goal**: Any high-order outcome. **Every goal is fully editable** and displays an eye-catching **glowing green effect** when active. Active state is **strictly goal-level**.
-- **Target Deadline**: The definitive target date formatted strictly as `DD-MM-YYYY` (e.g. `31-12-2026`), driving live countdowns.
-- **Category**: Flexible, user-colored grouping of tasks with visual completion rings.
-- **Milestone**: Non-fungible checkpoints that visually anchor substantive progress.
-- **Task & Subtask**: Granular work items with quick inline creation, optional deadlines (`DD-MM-YYYY`), status badges, and priorities (task-level active buttons removed in favor of automatic nearest-deadline resolution).
-- **Overall Progress**: Mathematically computed, weighted completion across all leaf tasks.
-
-### 🧭 Strict Three-Tab Navigation Paradigm
-LockedIn maintains a clean, distraction-free environment organized into strictly three primary views:
-1. **Dashboard**: Glowing green active goal card, live target countdown (`DD-MM-YYYY`), overall progress ring, nearest upcoming task card, and milestone tracker. No accidental blue startup focus squares.
-2. **Add Tasks**: Structured 260pt goal sidebar with organized multi-row cards (Title + Active badge/button, full-width stats row preventing text wrapping, and direct 1-click **Edit** and **Delete** buttons), category accordions, and **instant inline task quick-add** (no dropdown arrows or 3-dots menus!).
-3. **Settings**: Restructured preferences — active goal & deadline editing with single-line Switch Active Goal dropdown, System/Light/Dark appearance switcher (without intrusive blue borders), 5-second menu bar ticker configuration, custom notifications, launch-at-login, and JSON data backup/restore.
-
-### ⏱️ Persistent, Always-On Menu Bar Extra
-- The menu bar icon **stays always on even if the main application window is closed**.
-- Reopen the app instantly at any time from the menu bar popover or Dock.
-
-### 🔄 5-Second Alternating Menu Bar Ticker (Private Date-Only)
-- **Phase A (5 seconds)**: Displays overall goal target deadline (`DD-MM-YYYY`), remaining days (`(142d)`), and progress percentage.
-- **Phase B (5 seconds)**: Displays the **date for the recent task with an icon** (`[checklist] DD-MM-YYYY (Xd)`). **The task title is kept strictly private and never exposed in the menu bar.**
-- Quick popover access to a mini-dashboard and upcoming tasks with a reliable native segmented switcher (**Dashboard** vs **Tasks**).
-
-### 📅 Uniform `DD-MM-YYYY` Date Formatting Everywhere
-Dates across all screens, countdown badges, task rows, form sheets, and menu bar extras are strictly formatted in the clean, international `DD-MM-YYYY` standard.
-
-### 🗑️ Direct Delete Actions (No 3-Dots, No Dropdown Arrows)
-All multi-step dropdown menus have been replaced with dedicated, direct 1-click **Delete** buttons across goals, categories, and tasks.
-
-### 🎨 Clean, Native macOS Aesthetics
-- Native macOS vibrancy without awkward blue borders on tab buttons, appearance pickers, or startup cards.
-- Embedded high-resolution LockedIn icon branding throughout the interface.
-- Three appearance preferences: **System** (follows macOS dynamically), **Light**, and **Dark**.
-
-### 🔒 100% Offline-First & Private
-- Zero cloud accounts, zero telemetry, zero background network calls.
-- Atomic JSON persistence stored locally in `~/Library/Application Support/LockedIn/`.
-- Full backup export and restore in human-readable JSON.
-
----
-
-## 🏗️ Architecture
+The model is deliberately domain-neutral: nothing assumes you are a student, an engineer or an athlete. Everything is stored locally, nothing leaves your Mac.
 
 ```
-LockedIn/
-├── Package.swift                    # Swift Package Manager manifest
-├── LockedIn.xcodeproj/              # Native Xcode Project (macOS 13.0+)
-├── icon/
-│   └── icon.png                     # Master 1024x1024 icon
-├── scripts/
-│   └── build_dmg.sh                 # Universal DMG build script (arm64 + x86_64)
-├── LockedIn/
-│   ├── App/
-│   │   └── LockedInApp.swift        # @main entry point, Scene & Always-On MenuBarExtra
-│   ├── Models/
-│   │   ├── Goal.swift               # Root outcome model & progress logic
-│   │   ├── Category.swift           # User-defined grouping model
-│   │   ├── Task.swift               # Tasks, subtasks, milestones, statuses, deadlines
-│   │   └── AppSettings.swift        # Appearance, notifications, preferences
-│   ├── ViewModels/
-│   │   └── AppViewModel.swift       # Central state store, active task toggles, 5s ticker
-│   ├── Views/
-│   │   ├── ContentView.swift        # Master container with 3 primary tabs & logo
-│   │   ├── Dashboard/
-│   │   │   └── DashboardView.swift  # Glowing active goal, progress ring, active task
-│   │   ├── AddTasks/
-│   │   │   ├── AddTasksView.swift   # Categories, inline task add, direct delete buttons
-│   │   │   └── FormSheets.swift     # Modal builders for goals/categories/tasks
-│   │   ├── Settings/
-│   │   │   └── SettingsView.swift   # Grouped settings, goal editor, backup
-│   │   ├── MenuBar/
-│   │   │   └── MenuBarView.swift    # Lightweight menu bar popover
-│   │   ├── Onboarding/
-│   │   │   └── OnboardingView.swift # First-launch guided configuration
-│   │   └── Shared/
-│   │       ├── DesignSystem.swift   # Tokens, DD-MM-YYYY format, GlowingActiveBadge
-│   │       └── AppIconAsset.swift   # Embedded high-res app icon view & provider
-│   ├── Services/
-│   │   ├── PersistenceService.swift # Atomic JSON read/write & backup engine
-│   │   └── NotificationService.swift# UserNotifications dispatcher
-│   ├── Assets.xcassets/             # AppIcon, AppLogo, MenuBarIcon, AccentColor
-│   └── Info.plist                   # App configuration & bundle metadata
-├── flow.md                          # Technical architecture & state machine
-└── README.md                        # Documentation & contribution guide
+Goal ─▶ Categories ─▶ Tasks ─▶ Subtasks
+  │                     │
+  └── target date       └── deadline · priority · status · milestone
 ```
 
----
+## Features
 
-## ⚡ Quick Start & Installation
+### Always-on menu bar
+- The menu bar item stays active for as long as LockedIn runs. Closing the window, choosing **Quit** from the Dock, or pressing **⌘Q** closes the window only — the countdown remains in the menu bar.
+- When the window is closed, the Dock icon is hidden automatically (configurable), so LockedIn behaves like a lightweight menu bar utility.
+- To exit completely, use **Quit LockedIn** in the menu bar panel or **⌥⌘Q**. Logout, restart and shutdown are never blocked.
+- The label alternates every five seconds between the goal countdown and the nearest task deadline. **Task titles are never shown in the menu bar** — only dates.
+- The panel offers a mini dashboard, a goal switcher, and a one-click checklist of pending tasks sorted by urgency.
 
-### Option 1: Direct Download (Recommended for all Mac users)
-1. Download **[LockedIn-Universal.dmg](https://github.com/K-692/LockedIn/releases/download/v1.0.0/LockedIn-Universal.dmg)** (Universal binary for both Apple Silicon and Intel Macs).
-2. Open the downloaded `.dmg` file.
-3. Drag **LockedIn.app** into your **Applications** folder.
-4. Launch **LockedIn** from Applications or Spotlight!
+### Planning and tracking
+- **Dashboard** — active goal, day countdown, overall progress ring, task statistics, the most urgent task (complete it with **⌘↩**), upcoming work and milestones.
+- **Add Tasks** — goal sidebar, colour-coded categories with progress rings, inline quick-add (type and press Return), detailed task sheets with notes, priority, status, deadline, milestone flag and subtasks.
+- Subtasks can be completed or removed directly from the task list; editing a task preserves each subtask's completion state.
+- Right-click context menus on goals and tasks for status, priority, edit and delete.
+- Destructive actions on goals, categories and tasks with subtasks ask for confirmation and state exactly what will be removed.
+- Consistent `DD-MM-YYYY` dates everywhere; overdue items are highlighted with the number of days elapsed.
 
-*(If macOS displays an unverified developer prompt on first open, right-click `LockedIn.app` and choose **Open**, or allow it in System Settings > Privacy & Security).*
+### Notifications
+- Daily or weekly progress digest (9:00 AM).
+- Morning reminder on the day a task is due.
+- Advance warning before a goal deadline (1–90 days, configurable).
+- Instant notification when a milestone is completed.
+- All reminders are rebuilt from current data after every change, so they never go stale after edits or deletions.
 
----
+### Settings
+- System / Light / Dark appearance.
+- Launch at login (via `SMAppService`, stays in sync with System Settings › Login Items).
+- Menu bar content: remaining days, progress percentage, task-date alternation.
+- JSON backup export and validated restore.
 
-### Option 2: Build the Universal DMG from Source
+### Keyboard shortcuts
+
+| Shortcut | Action |
+| :-- | :-- |
+| ⌘1 / ⌘2 / ⌘3 | Dashboard / Add Tasks / Settings |
+| ⌘↩ | Mark the active task complete (Dashboard) |
+| ⇧⌘N | New goal (Add Tasks) |
+| ⌥⌘N | New category (Add Tasks) |
+| Return / Esc | Confirm / cancel in any form sheet |
+| ⌘Q | Close the window — LockedIn keeps running in the menu bar |
+| ⌥⌘Q | Quit LockedIn completely |
+
+## Reliability and privacy
+
+- **Local-first.** No accounts, analytics or network access. Data lives in `~/Library/Application Support/LockedIn/` as plain JSON.
+- **Safe writes.** Saves are debounced, written atomically on a background queue and flushed on quit, so the interface never blocks on disk I/O.
+- **No silent data loss.** If a data file cannot be read, it is moved aside (for example `goals.corrupt-<timestamp>.json`) rather than overwritten.
+- **Forward and backward compatible.** Models decode tolerantly — missing or unknown fields fall back to sensible defaults, so upgrading never resets your goals or preferences.
+- **Validated restore.** A backup is fully parsed and checked before any existing data is replaced.
+
+## Installation
+
+1. Download **[LockedIn-Universal.dmg](https://github.com/K-692/LockedIn/releases/latest/download/LockedIn-Universal.dmg)** — a universal binary for Apple Silicon and Intel.
+2. Open the disk image and drag **LockedIn** into **Applications**.
+3. Launch LockedIn from Applications or Spotlight.
+
+> LockedIn is ad-hoc signed, not notarised. On first launch macOS may block it; right-click the app and choose **Open**, or allow it under **System Settings › Privacy & Security**.
+
+Install into `/Applications` before enabling **Launch at Login** — macOS only registers login items for apps in a stable location.
+
+## Building from source
+
+**Requirements:** macOS 13 or later and Swift 5.9+ (Xcode 15+ or the Command Line Tools).
+
 ```bash
 git clone https://github.com/K-692/LockedIn.git
 cd LockedIn
+```
 
-# Compile universal binary (arm64 + x86_64) and create DMG
+Build a universal `.app` and `LockedIn-Universal.dmg`:
+
+```bash
 ./scripts/build_dmg.sh
 ```
 
----
+Build and run a development binary:
 
-### Option 3: Build & Run from Command Line
 ```bash
-# Clone the repository
-git clone https://github.com/K-692/LockedIn.git
-cd LockedIn
-
-# Build the release executable
-swift build -c release
-
-# Launch LockedIn
-.build/release/LockedIn
+swift build
+.build/debug/LockedIn
 ```
 
----
+Or open the Xcode project and press **⌘R**:
 
-### Option 4: Open in Xcode
 ```bash
 open LockedIn.xcodeproj
 ```
-Press `Cmd + R` in Xcode to build and run.
 
----
+> Running the bare binary (outside an `.app` bundle) works for development, but notifications and Launch at Login require a bundled app — use `build_dmg.sh` to test those.
 
-## 📊 Technical Specifications
+## Project structure
 
-| Parameter | Specification |
-| :--- | :--- |
-| **Minimum Deployment** | macOS 13.0 (Ventura) |
-| **Tested On** | macOS Sonoma (14.x) & macOS Sequoia (15.x) |
-| **Architecture** | Apple Silicon (arm64) & Intel (x86_64) Universal |
-| **Frameworks** | SwiftUI, AppKit, Combine, UserNotifications, UniformTypeIdentifiers |
-| **Storage Engine** | Atomic serialized JSON with crash recovery |
-| **Date Format Standard** | `DD-MM-YYYY` across all views |
-| **Menu Bar Mode** | Always-On, Alternating 5-second ticker (Goal Countdown vs Private Task Date) |
-| **UI Paradigms** | 3-tab segmented navigation, Glassmorphism, Semantic Colors |
+```
+LockedIn/
+├── App/LockedInApp.swift            Entry point: main window, menu bar extra, lifecycle (AppDelegate)
+├── Models/                          Goal, Category, Task, AppSettings — tolerant Codable models
+├── ViewModels/AppViewModel.swift    Single source of truth: CRUD, debounced saves, menu bar ticker
+├── Services/
+│   ├── PersistenceService.swift     Atomic JSON storage, quarantine, backup/restore
+│   └── NotificationService.swift    Reminder scheduling derived from current state
+├── Views/
+│   ├── ContentView.swift            Three-tab container, onboarding, alerts
+│   ├── Dashboard/                   Countdown, progress and upcoming work
+│   ├── AddTasks/                    Goal sidebar, categories, task rows, form sheets
+│   ├── Settings/                    Preferences, backup and restore
+│   ├── MenuBar/                     Menu bar panel
+│   ├── Onboarding/                  First-launch flow
+│   └── Shared/                      Design tokens, reusable components, app icon
+├── Assets.xcassets/
+└── Info.plist
+scripts/build_dmg.sh                 Universal (arm64 + x86_64) app bundle and DMG
+```
 
----
+See [`flow.md`](flow.md) for a deeper walkthrough of state flow and data model.
 
-## 🤝 Contributing
+## Technical specifications
 
-Contributions make the open-source community an inspiring place to learn, create, and build. Any contributions you make are **greatly appreciated**.
+| | |
+| :-- | :-- |
+| Minimum macOS | 13.0 Ventura |
+| Architectures | Universal — arm64 and x86_64 |
+| UI | SwiftUI with AppKit integration |
+| Frameworks | SwiftUI, AppKit, Combine, UserNotifications, ServiceManagement, UniformTypeIdentifiers |
+| Storage | Local JSON, atomic writes, corrupt-file quarantine |
+| Network access | None |
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## Contributing
 
----
+Contributions are welcome.
 
-## 📄 License
+1. Fork the repository and create a branch: `git checkout -b feature/my-change`.
+2. Make your change and confirm `swift build` completes without warnings.
+3. Commit using [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:` …).
+4. Open a pull request describing the change and how you tested it.
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Please open an issue first for larger changes so the approach can be discussed.
 
----
+## License
 
-<p align="center">
-  Built with ❤️ for focused creators, researchers, engineers, and achievers everywhere.
-</p>
+Released under the [MIT License](LICENSE).

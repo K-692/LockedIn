@@ -132,14 +132,14 @@ The menu bar item operates on a discrete 5-second clock pulse to maximize inform
    - Resolves: $\min_{t \in T_{\text{incomplete}}} \{ t.\text{deadline} \}$.
    - Shows: `[checklist]` + task deadline (`DD-MM-YYYY`) + days remaining. **Never exposes task title in the menu bar.**
 
-### 4.2 Always-On Menu Bar Lifecycle (Window Interception)
+### 4.2 Always-On Menu Bar Lifecycle
 
-To guarantee the menu bar extra remains visible and interactive even after the user closes the main window:
-1. `NSSupportsAutomaticTermination` set to `false` in `Info.plist`.
-2. `ProcessInfo.processInfo.disableAutomaticTermination(...)` called on app launch.
-3. `NSWindowDelegate.windowShouldClose(_:)` intercepts the red close button and executes `window.orderOut(nil)` instead of destroying the window.
-4. `applicationShouldTerminateAfterLastWindowClosed` returns `false`.
-5. Menu bar popover "Open LockedIn" button and Dock reopen triggers invoke `AppDelegate.reopenMainWindow()`, restoring the window instantly without process restart.
+The menu bar extra must stay alive even when the user closes the window or quits from the Dock:
+1. `NSSupportsAutomaticTermination` / `NSSupportsSuddenTermination` are `false`, and automatic termination is disabled at launch.
+2. `applicationShouldTerminateAfterLastWindowClosed` returns `false`.
+3. `applicationShouldTerminate` returns `.terminateCancel` for Dock **Quit** and **⌘Q**: the main window closes and the app stays in the menu bar. It returns `.terminateNow` only when the user explicitly quits (menu bar **Quit LockedIn** / **⌥⌘Q**) or when the quit Apple Event carries a logout/restart/shutdown reason (`kAEQuitReason`), plus `NSWorkspace.willPowerOffNotification` as a safety net.
+4. When the last main window closes, the activation policy switches to `.accessory` (Dock icon hidden, configurable). `MainWindow.show()` restores `.regular`, reopens the single `Window` scene via the captured `OpenWindowAction`, and activates the app.
+5. `applicationWillTerminate` flushes pending (debounced) saves synchronously.
 
 ---
 
@@ -169,6 +169,7 @@ Enforced across:
 | **Phase 5** | Strict Enhancements | Standardized `DD-MM-YYYY` everywhere, removed all 3-dots/arrow menus with direct delete buttons, added glowing green effect for active goals, ensured always-on menu bar lifecycle, and restricted menu bar task ticker to date-only. |
 | **Phase 6** | Goal-Exclusive Active Semantics & Sidebar Layout Restructuring | Overhauled Add Tasks goal sidebar with 260pt multi-row card hierarchy (Title + Active Badge on top, dedicated stats line, bottom-aligned Edit/Delete), fixed `GlowingActiveBadge` to prevent text splitting, and completely removed task-level active buttons to maintain unambiguous goal-only active state semantics. |
 | **Phase 7** | Menu Bar Popover Segmented Switcher & Settings Alignment | Replaced transient menu bar tab state with persistent `vm.menuBarTab` and native `NSSegmentedControl` (`Picker(.segmented)`), fixing unresponsive Dashboard/Tasks switching in the menu bar popover; aligned "Switch Active Goal" and the dropdown menu onto the exact same horizontal line in Settings. |
+| **Phase 8** | Robustness, Interaction & Lifecycle | Menu bar survives Dock Quit/⌘Q; Dock icon auto-hides; tolerant Codable decoding; corrupt-file quarantine; debounced background saves; validated backup restore; working notifications and launch-at-login; subtask toggling; delete confirmations; context menus, hover states and keyboard shortcuts. |
 
 ---
 

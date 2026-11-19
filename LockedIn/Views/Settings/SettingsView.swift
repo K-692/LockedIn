@@ -1,85 +1,93 @@
 // MARK: - SettingsView.swift
-// Settings & Preferences: Goal management, appearance, menu bar, notifications, launch, backup.
-// Completely domain-neutral, organized layout, no focus timer, zero blue borders, YY-MM-DD dates.
+// Settings & Preferences: goal management, appearance, menu bar, notifications, startup, backup.
+// Every control writes straight through to the view model, so changes apply and persist instantly.
 
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject var vm: AppViewModel
-    @State private var localSettings: AppSettings = AppSettings()
     @State private var showExportPanel: Bool = false
     @State private var showImportPanel: Bool = false
     @State private var showRestoreConfirm: Bool = false
     @State private var exportDocument: BackupDocument? = nil
     @State private var editingGoal: Goal? = nil
+    @State private var showNewGoal: Bool = false
+
+    private var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let build = info?["CFBundleVersion"] as? String ?? "1"
+        return "v\(short) (\(build))"
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: LKSpacing.xl) {
-                // App Branding Header with Logo
                 appHeaderCard
 
-                // 1. Goal Management & Target Deadline (Editable)
                 settingsSection("Active Goal & Target Deadline", icon: "target") {
                     goalSettingsContent
                 }
 
-                // 2. Appearance
                 settingsSection("Appearance", icon: "paintbrush") {
                     appearanceSettingsContent
                 }
 
-                // 3. Menu Bar Extra
-                settingsSection("Menu Bar Extra", icon: "menubar.rectangle") {
+                settingsSection("Menu Bar", icon: "menubar.rectangle") {
                     menuBarSettingsContent
                 }
 
-                // 4. Notifications
                 settingsSection("Notifications & Alerts", icon: "bell.badge") {
                     notificationSettingsContent
                 }
 
-                // 5. System Integration
                 settingsSection("System & Startup", icon: "gearshape") {
                     systemSettingsContent
                 }
 
-                // 6. Data Backup & Storage
                 settingsSection("Data Management", icon: "externaldrive") {
                     backupSettingsContent
                 }
             }
             .padding(LKSpacing.xl)
             .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(item: $editingGoal) { goal in
             GoalFormSheet(editingGoal: goal)
                 .environmentObject(vm)
         }
-        .onAppear {
-            localSettings = vm.settings
-        }
-        .onChange(of: localSettings.appearance) { _ in
-            vm.updateSettings(localSettings)
+        .sheet(isPresented: $showNewGoal) {
+            GoalFormSheet(editingGoal: nil)
+                .environmentObject(vm)
         }
         .fileExporter(
             isPresented: $showExportPanel,
             document: exportDocument,
             contentType: .json,
-            defaultFilename: "LockedIn-backup"
-        ) { _ in }
+            defaultFilename: "LockedIn-backup-\(Date().formattedDDMMYYYY)"
+        ) { result in
+            if case .failure(let error) = result {
+                vm.alertMessage = "Export failed: \(error.localizedDescription)"
+            }
+        }
         .fileImporter(
             isPresented: $showImportPanel,
             allowedContentTypes: [.json]
         ) { result in
-            if case .success(let url) = result,
-               url.startAccessingSecurityScopedResource(),
-               let data = try? Data(contentsOf: url) {
-                PersistenceService.importBackup(from: data)
-                vm.load()
-                url.stopAccessingSecurityScopedResource()
+            switch result {
+            case .success(let url):
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    vm.restoreBackup(from: try Data(contentsOf: url))
+                } catch {
+                    vm.alertMessage = "Couldn't read the backup: \(error.localizedDescription)"
+                }
+            case .failure(let error):
+                vm.alertMessage = "Couldn't open the file: \(error.localizedDescription)"
             }
         }
     }
@@ -96,7 +104,7 @@ struct SettingsView: View {
                     Text("LockedIn")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.labelPrimary)
-                    Text("v1.0.0 (Universal)")
+                    Text(appVersion)
                         .font(LKFont.caption)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -165,7 +173,7 @@ struct SettingsView: View {
                             .font(LKFont.caption)
                             .foregroundColor(.labelSecondary)
                         if let days = goal.daysRemaining {
-                            Text("\(days) days remaining")
+                            Text(days < 0 ? "Overdue by \(-days) day\(days == -1 ? "" : "s")" : "\(days) day\(days == 1 ? "" : "s") remaining")
                                 .font(LKFont.headline)
                                 .foregroundColor(goal.isOverdue ? .red : .labelPrimary)
                         } else {
@@ -195,7 +203,7 @@ struct SettingsView: View {
                         Spacer()
 
                         Picker("", selection: Binding<UUID>(
-                            get: { vm.activeGoalId ?? UUID() },
+                            get: { vm.activeGoalId ?? goal.id },
                             set: { vm.setActiveGoalId($0) }
                         )) {
                             ForEach(vm.goals) { g in
@@ -214,7 +222,7 @@ struct SettingsView: View {
                     .foregroundColor(.labelSecondary)
 
                 Button {
-                    editingGoal = Goal(name: "My Goal")
+                    showNewGoal = true
                 } label: {
                     Label("Create First Goal", systemImage: "plus.circle")
                 }
@@ -235,10 +243,9 @@ struct SettingsView: View {
                 ForEach(AppearancePreference.allCases, id: \.self) { pref in
                     AppearanceCleanButton(
                         preference: pref,
-                        isSelected: localSettings.appearance == pref
+                        isSelected: vm.settings.appearance == pref
                     ) {
-                        localSettings.appearance = pref
-                        vm.updateSettings(localSettings)
+                        vm.settingBinding(\.appearance).wrappedValue = pref
                     }
                 }
             }
@@ -250,29 +257,20 @@ struct SettingsView: View {
     @ViewBuilder
     private var menuBarSettingsContent: some View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
-            Toggle("Show remaining days in menu bar", isOn: $localSettings.showCountdownInMenuBar)
-                .onChange(of: localSettings.showCountdownInMenuBar) { _ in vm.updateSettings(localSettings) }
-
-            Toggle("Show progress percentage in menu bar", isOn: $localSettings.showProgressInMenuBar)
-                .onChange(of: localSettings.showProgressInMenuBar) { _ in vm.updateSettings(localSettings) }
-
-            Divider()
+            Toggle("Show remaining days in menu bar", isOn: vm.settingBinding(\.showCountdownInMenuBar))
+            Toggle("Show progress percentage in menu bar", isOn: vm.settingBinding(\.showProgressInMenuBar))
+            Toggle("Alternate with nearest task deadline every 5 seconds", isOn: vm.settingBinding(\.alternateNearestTaskInMenuBar))
 
             HStack(alignment: .top, spacing: LKSpacing.sm) {
-                Image(systemName: "arrow.triangle.2.circlepath")
+                Image(systemName: "lock.shield")
                     .foregroundColor(.accentColor)
                     .font(.system(size: 13))
                     .padding(.top, 2)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("5-Second Menu Bar Alternation Active")
-                        .font(LKFont.body)
-                        .foregroundColor(.labelPrimary)
-                    Text("The menu bar item smoothly rotates every 5 seconds between your overall goal deadline and your nearest target task date (formatted as DD-MM-YYYY, with task title kept private).")
-                        .font(LKFont.caption)
-                        .foregroundColor(.labelSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text("LockedIn always stays in the menu bar — closing the window or choosing Quit from the Dock keeps it running there. Task titles are never shown in the menu bar, only dates. To exit completely, use \u{201C}Quit LockedIn\u{201D} in the menu bar panel or press \u{2325}\u{2318}Q.")
+                    .font(LKFont.caption)
+                    .foregroundColor(.labelSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(LKSpacing.sm)
             .background(Color(NSColor.windowBackgroundColor))
@@ -285,35 +283,41 @@ struct SettingsView: View {
     @ViewBuilder
     private var notificationSettingsContent: some View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
-            Toggle("Enable Notifications", isOn: $localSettings.notificationsEnabled)
-                .onChange(of: localSettings.notificationsEnabled) { _ in vm.updateSettings(localSettings) }
+            Toggle("Enable Notifications", isOn: vm.settingBinding(\.notificationsEnabled))
 
-            if localSettings.notificationsEnabled {
+            if vm.settings.notificationsEnabled {
                 Divider()
 
-                Picker("Digest Frequency", selection: $localSettings.notificationFrequency) {
+                Picker("Progress digest (9:00 AM)", selection: vm.settingBinding(\.notificationFrequency)) {
                     ForEach(NotificationFrequency.allCases, id: \.self) { f in
                         Text(f.rawValue).tag(f)
                     }
                 }
-                .onChange(of: localSettings.notificationFrequency) { _ in vm.updateSettings(localSettings) }
 
-                Toggle("Alert on task deadline (DD-MM-YYYY)", isOn: $localSettings.notifyOnTaskDeadline)
-                    .onChange(of: localSettings.notifyOnTaskDeadline) { _ in vm.updateSettings(localSettings) }
+                Toggle("Remind me on the morning a task is due", isOn: vm.settingBinding(\.notifyOnTaskDeadline))
+                Toggle("Alert when a milestone is completed", isOn: vm.settingBinding(\.notifyOnMilestoneReached))
+                Toggle("Alert when a goal deadline approaches", isOn: vm.settingBinding(\.notifyOnGoalDeadlineApproach))
 
-                Toggle("Alert when category milestone is completed", isOn: $localSettings.notifyOnMilestoneReached)
-                    .onChange(of: localSettings.notifyOnMilestoneReached) { _ in vm.updateSettings(localSettings) }
-
-                Toggle("Alert when goal deadline approaches", isOn: $localSettings.notifyOnGoalDeadlineApproach)
-                    .onChange(of: localSettings.notifyOnGoalDeadlineApproach) { _ in vm.updateSettings(localSettings) }
-
-                if localSettings.notifyOnGoalDeadlineApproach {
+                if vm.settings.notifyOnGoalDeadlineApproach {
                     Stepper(
-                        "Warn \(localSettings.goalDeadlineWarningDays) days before deadline",
-                        value: $localSettings.goalDeadlineWarningDays,
+                        "Warn \(vm.settings.goalDeadlineWarningDays) day\(vm.settings.goalDeadlineWarningDays == 1 ? "" : "s") before deadline",
+                        value: vm.settingBinding(\.goalDeadlineWarningDays),
                         in: 1...90
                     )
-                    .onChange(of: localSettings.goalDeadlineWarningDays) { _ in vm.updateSettings(localSettings) }
+                }
+
+                if !NotificationService.isAvailable {
+                    Text("Notifications are only available when LockedIn runs as an installed .app.")
+                        .font(LKFont.caption)
+                        .foregroundColor(.orange)
+                } else {
+                    Button("Open Notification Settings…") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.link)
+                    .font(LKFont.caption)
                 }
             }
         }
@@ -324,10 +328,8 @@ struct SettingsView: View {
     @ViewBuilder
     private var systemSettingsContent: some View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
-            Toggle("Launch LockedIn at Login", isOn: $localSettings.launchAtLogin)
-                .onChange(of: localSettings.launchAtLogin) { _ in
-                    vm.updateSettings(localSettings)
-                }
+            Toggle("Launch LockedIn at Login", isOn: vm.settingBinding(\.launchAtLogin))
+            Toggle("Hide Dock icon while the window is closed", isOn: vm.settingBinding(\.hideDockIconWhenClosed))
 
             Divider()
 
@@ -335,14 +337,14 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Data Storage Location")
                         .font(LKFont.body)
-                    Text("~/Library/Application Support/LockedIn")
+                    Text(PersistenceService.storagePathDescription)
+                        .textSelection(.enabled)
                         .font(LKFont.mono)
                         .foregroundColor(.labelSecondary)
                 }
                 Spacer()
                 Button("Open in Finder") {
-                    let url = PersistenceService.documentsDirectory
-                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
+                    NSWorkspace.shared.open(PersistenceService.documentsDirectory)
                 }
                 .buttonStyle(.bordered)
             }
@@ -364,9 +366,11 @@ struct SettingsView: View {
                 }
                 Spacer()
                 Button("Export Backup…") {
-                    if let data = PersistenceService.exportBackup() {
+                    if let data = vm.exportBackupData() {
                         exportDocument = BackupDocument(data: data)
                         showExportPanel = true
+                    } else {
+                        vm.alertMessage = "Couldn't create the backup."
                     }
                 }
                 .buttonStyle(.bordered)

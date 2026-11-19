@@ -1,6 +1,6 @@
 // MARK: - FormSheets.swift
 // Modal form sheets for creating and editing goals, categories, and tasks.
-// All dates formatted strictly as YY-MM-DD.
+// All dates formatted strictly as DD-MM-YYYY. Return confirms, Escape cancels.
 
 import SwiftUI
 
@@ -25,13 +25,14 @@ struct GoalFormSheet: View {
             Form {
                 Section("Goal Details") {
                     TextField("Goal name (e.g. Complete my project)", text: $name)
+                        .onSubmit(commit)
 
                     Toggle("Set a target deadline", isOn: $hasDeadline)
 
                     if hasDeadline {
                         DatePicker("Target Deadline",
                                    selection: $targetDeadline,
-                                   in: Date()...,
+                                   in: min(Calendar.current.startOfDay(for: Date()), editingGoal?.targetDeadline ?? .distantFuture)...,
                                    displayedComponents: .date)
 
                         HStack {
@@ -52,16 +53,18 @@ struct GoalFormSheet: View {
             HStack {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(.bordered)
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(isEditing ? "Save Changes" : "Create Goal") {
                     commit()
                 }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
                 .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(LKSpacing.md)
         }
-        .frame(width: 440, height: 320)
+        .frame(width: 460, height: 340)
         .onAppear {
             if let g = editingGoal {
                 name = g.name
@@ -114,6 +117,7 @@ struct CategoryFormSheet: View {
             Form {
                 Section("Category Details") {
                     TextField("Name (e.g. Writing, Training, Research)", text: $name)
+                        .onSubmit(commit)
 
                     VStack(alignment: .leading, spacing: LKSpacing.sm) {
                         Text("Color")
@@ -139,18 +143,24 @@ struct CategoryFormSheet: View {
             HStack {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(.bordered)
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(isEditing ? "Save Changes" : "Create Category") { commit() }
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(LKSpacing.md)
         }
-        .frame(width: 420, height: 280)
+        .frame(width: 440, height: 290)
         .onAppear {
             if let c = editingCategory {
                 name     = c.name
                 colorHex = c.colorHex
+            } else if let goal = vm.goals.first(where: { $0.id == goalId }) {
+                // Pick the first colour not already used in this goal.
+                let used = Set(goal.categories.map(\.colorHex))
+                colorHex = palette.first { !used.contains($0) } ?? palette[goal.categories.count % palette.count]
             }
         }
     }
@@ -186,9 +196,9 @@ struct TaskFormSheet: View {
     @State private var status: TaskStatus = .notStarted
     @State private var priority: TaskPriority = .medium
     @State private var hasDeadline: Bool = false
-    @State private var deadline: Date = Date()
+    @State private var deadline: Date = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
     @State private var isMilestone: Bool = false
-    @State private var subtaskTitles: [String] = []
+    @State private var subtasks: [Task] = []
     @State private var newSubtask: String = ""
 
     var isEditing: Bool { editingTask != nil }
@@ -237,20 +247,30 @@ struct TaskFormSheet: View {
                 }
 
                 Section("Subtasks") {
-                    ForEach(subtaskTitles.indices, id: \.self) { idx in
+                    ForEach($subtasks) { $sub in
                         HStack {
-                            Image(systemName: "circle")
-                                .foregroundColor(.labelSecondary)
-                                .font(.system(size: 12))
-                            TextField("Subtask \(idx + 1)", text: $subtaskTitles[idx])
+                            Button {
+                                sub.setStatus(sub.status == .completed ? .notStarted : .completed)
+                            } label: {
+                                Image(systemName: sub.status == .completed ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(sub.status == .completed ? .green : .labelSecondary)
+                                    .font(.system(size: 13))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Toggle subtask completion")
+
+                            TextField("Subtask", text: $sub.title)
+                                .strikethrough(sub.status == .completed)
                             Spacer()
                             Button {
-                                subtaskTitles.remove(at: idx)
+                                let id = sub.id
+                                subtasks.removeAll { $0.id == id }
                             } label: {
                                 Image(systemName: "minus.circle.fill")
                                     .foregroundColor(.red)
                             }
                             .buttonStyle(.plain)
+                            .help("Remove subtask")
                         }
                     }
 
@@ -273,14 +293,16 @@ struct TaskFormSheet: View {
             HStack {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(.bordered)
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(isEditing ? "Save Changes" : "Add Task") { commit() }
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(LKSpacing.md)
         }
-        .frame(width: 480, height: 580)
+        .frame(width: 500, height: 600)
         .onAppear {
             if let t = editingTask {
                 title         = t.title
@@ -288,9 +310,9 @@ struct TaskFormSheet: View {
                 status        = t.status
                 priority      = t.priority
                 hasDeadline   = t.deadline != nil
-                deadline      = t.deadline ?? Date()
+                deadline      = t.deadline ?? deadline
                 isMilestone   = t.isMilestone
-                subtaskTitles = t.subtasks.map { $0.title }
+                subtasks      = t.subtasks
             }
         }
     }
@@ -298,7 +320,7 @@ struct TaskFormSheet: View {
     private func addSubtask() {
         let trimmed = newSubtask.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        subtaskTitles.append(trimmed)
+        subtasks.append(Task(title: trimmed))
         newSubtask = ""
     }
 
@@ -306,28 +328,34 @@ struct TaskFormSheet: View {
         let trimmed = title.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
 
-        let subs = subtaskTitles
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .map { Task(title: $0) }
+        // Keep subtask identity & completion state; drop blank ones.
+        let subs: [Task] = subtasks.compactMap { sub in
+            var s = sub
+            s.title = s.title.trimmingCharacters(in: .whitespaces)
+            return s.title.isEmpty ? nil : s
+        }
+        // Include a typed-but-not-added subtask instead of silently discarding it.
+        let pending = newSubtask.trimmingCharacters(in: .whitespaces)
+        let allSubs = pending.isEmpty ? subs : subs + [Task(title: pending)]
+        let notesTrimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if var t = editingTask {
             t.title       = trimmed
-            t.notes       = notes
-            t.status      = status
+            t.notes       = notesTrimmed
+            t.setStatus(status)
             t.priority    = priority
             t.deadline    = hasDeadline ? deadline : nil
             t.isMilestone = isMilestone
-            t.subtasks    = subs
+            t.subtasks    = allSubs
             vm.updateTask(t, in: categoryId, goalId: goalId)
         } else {
             var t = Task(title: trimmed)
-            t.notes       = notes
-            t.status      = status
+            t.notes       = notesTrimmed
+            t.setStatus(status)
             t.priority    = priority
             t.deadline    = hasDeadline ? deadline : nil
             t.isMilestone = isMilestone
-            t.subtasks    = subs
+            t.subtasks    = allSubs
             vm.addTask(t, to: categoryId, in: goalId)
         }
         dismiss()
@@ -352,16 +380,30 @@ private struct ColorSwatchView: View {
     let hex: String
     let isSelected: Bool
     let onSelect: () -> Void
+    @State private var hovering = false
 
     var body: some View {
-        Circle()
-            .fill(Color(hex: hex) ?? .accentColor)
-            .frame(width: 24, height: 24)
-            .overlay(
+        Button(action: onSelect) {
+            ZStack {
                 Circle()
-                    .stroke(Color.white, lineWidth: isSelected ? 3 : 0)
+                    .fill(Color(hex: hex) ?? .accentColor)
+                    .frame(width: 24, height: 24)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .padding(3)
+            .overlay(
+                Circle().stroke(Color.primary.opacity(isSelected ? 0.6 : (hovering ? 0.25 : 0)), lineWidth: 2)
             )
-            .onTapGesture(perform: onSelect)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(hex)
+        .accessibilityLabel("Color \(hex)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
-

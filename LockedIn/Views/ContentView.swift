@@ -36,6 +36,23 @@ struct ContentView: View {
         }
         .background(Color(NSColor.windowBackgroundColor))
         .animation(.easeInOut(duration: 0.2), value: vm.selectedTab)
+        .sheet(isPresented: $vm.showOnboarding) {
+            OnboardingView()
+                .environmentObject(vm)
+                .interactiveDismissDisabled()
+        }
+        .alert(
+            "LockedIn",
+            isPresented: Binding(
+                get: { vm.alertMessage != nil },
+                set: { if !$0 { vm.alertMessage = nil } }
+            ),
+            presenting: vm.alertMessage
+        ) { _ in
+            Button("OK", role: .cancel) { vm.alertMessage = nil }
+        } message: { message in
+            Text(message)
+        }
     }
 
     // MARK: - Top Navigation Bar
@@ -60,9 +77,9 @@ struct ContentView: View {
 
             // Exactly Three Primary Navigation Tabs (No blue borders / no glow outlines)
             HStack(spacing: 4) {
-                tabButton(title: "Dashboard", icon: "square.grid.2x2.fill", tabIndex: 0)
-                tabButton(title: "Add Tasks", icon: "plus.circle.fill", tabIndex: 1)
-                tabButton(title: "Settings", icon: "gearshape.fill", tabIndex: 2)
+                TabButton(title: "Dashboard", icon: "square.grid.2x2.fill", tabIndex: 0, selection: $vm.selectedTab)
+                TabButton(title: "Add Tasks", icon: "plus.circle.fill", tabIndex: 1, selection: $vm.selectedTab)
+                TabButton(title: "Settings", icon: "gearshape.fill", tabIndex: 2, selection: $vm.selectedTab)
             }
             .padding(3)
             .background(Color(NSColor.controlBackgroundColor))
@@ -86,9 +103,9 @@ struct ContentView: View {
                                     .foregroundColor(.labelSecondary)
                             }
                             if let days = goal.daysRemaining {
-                                Text("(\(days)d)")
+                                Text(days < 0 ? "(\(-days)d over)" : "(\(days)d)")
                                     .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(days < 14 ? .orange : .labelSecondary)
+                                    .foregroundColor(days < 0 ? .red : (days < 14 ? .orange : .labelSecondary))
                             }
                         }
                     }
@@ -105,6 +122,10 @@ struct ContentView: View {
                 .padding(.vertical, 4)
                 .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
                 .cornerRadius(LKRadius.sm)
+                .frame(maxWidth: 260, alignment: .trailing)
+                .contentShape(Rectangle())
+                .onTapGesture { vm.selectedTab = 0 }
+                .help("\(goal.name) — \(Int((goal.overallProgress * 100).rounded()))% complete")
             }
         }
         .padding(.horizontal, LKSpacing.md)
@@ -112,14 +133,22 @@ struct ContentView: View {
         .background(Color(NSColor.windowBackgroundColor))
     }
 
-    // MARK: - Navigation Tab Button (Clean segmented design without blue border)
-    private func tabButton(title: String, icon: String, tabIndex: Int) -> some View {
-        let isSelected = vm.selectedTab == tabIndex
+}
 
-        return Button {
-            withAnimation(.easeInOut(duration: 0.16)) {
-                vm.selectedTab = tabIndex
-            }
+// MARK: - Navigation Tab Button (segmented, hover-aware, keyboard shortcut hint)
+
+private struct TabButton: View {
+    let title: String
+    let icon: String
+    let tabIndex: Int
+    @Binding var selection: Int
+    @State private var hovering = false
+
+    var body: some View {
+        let isSelected = selection == tabIndex
+
+        Button {
+            withAnimation(.easeInOut(duration: 0.16)) { selection = tabIndex }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
@@ -129,21 +158,20 @@ struct ContentView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
-            .foregroundColor(isSelected ? .labelPrimary : .labelSecondary)
+            .foregroundColor(isSelected || hovering ? .labelPrimary : .labelSecondary)
             .background(
-                Group {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: LKRadius.sm, style: .continuous)
-                            .fill(Color(NSColor.windowBackgroundColor))
-                            .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
-                    } else {
-                        Color.clear
-                    }
-                }
+                RoundedRectangle(cornerRadius: LKRadius.sm, style: .continuous)
+                    .fill(isSelected
+                          ? Color(NSColor.windowBackgroundColor)
+                          : Color.primary.opacity(hovering ? 0.06 : 0))
+                    .shadow(color: Color.black.opacity(isSelected ? 0.08 : 0), radius: 2, x: 0, y: 1)
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .focusable(false)
+        .onHover { hovering = $0 }
+        .help("\(title) (⌘\(tabIndex + 1))")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

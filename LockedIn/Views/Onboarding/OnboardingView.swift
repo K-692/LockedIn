@@ -62,10 +62,7 @@ struct OnboardingView: View {
 
     private var welcomeStep: some View {
         VStack(spacing: LKSpacing.xl) {
-            Image("AppIcon")
-                .resizable()
-                .frame(width: 80, height: 80)
-                .cornerRadius(18)
+            AppIconView(size: 80, cornerRadius: 18)
                 .shadow(color: .accentColor.opacity(0.5), radius: 20)
                 .scaleEffect(animateIn ? 1 : 0.6)
                 .animation(.spring(response: 0.5), value: animateIn)
@@ -83,7 +80,7 @@ struct OnboardingView: View {
             VStack(spacing: LKSpacing.md) {
                 featureRow(icon: "target",      text: "Define a goal and target deadline")
                 featureRow(icon: "checklist",   text: "Break it into categories and tasks")
-                featureRow(icon: "timer",       text: "Focus with a built-in Pomodoro timer")
+                featureRow(icon: "menubar.rectangle", text: "Keep your countdown visible in the menu bar")
                 featureRow(icon: "chart.line.uptrend.xyaxis", text: "Track overall progress every day")
             }
 
@@ -99,6 +96,7 @@ struct OnboardingView: View {
                     .cornerRadius(LKRadius.lg)
             }
             .buttonStyle(.plain)
+            .keyboardShortcut(.defaultAction)
 
             Button("Skip for now") { vm.completeOnboarding() }
                 .font(LKFont.caption)
@@ -154,6 +152,7 @@ struct OnboardingView: View {
                         .textFieldStyle(.plain)
                         .font(LKFont.title2)
                         .foregroundColor(.white)
+                        .onSubmit(createGoalAndProceed)
                         .padding(LKSpacing.sm)
                         .background(Color.white.opacity(0.1))
                         .cornerRadius(LKRadius.sm)
@@ -173,7 +172,7 @@ struct OnboardingView: View {
                 if hasDeadline {
                     DatePicker("Target date",
                                selection: $targetDeadline,
-                               in: Date()...,
+                               in: Calendar.current.startOfDay(for: Date())...,
                                displayedComponents: .date)
                         .colorScheme(.dark)
                 }
@@ -184,16 +183,17 @@ struct OnboardingView: View {
                 Button("Back") { withAnimation { step = 0 } }
                     .foregroundColor(.white.opacity(0.6))
                     .buttonStyle(.plain)
+                    .keyboardShortcut(.cancelAction)
 
                 Button {
                     createGoalAndProceed()
                 } label: {
-                    Text(goalName.isEmpty ? "Skip" : "Create Goal")
+                    Text(trimmedName.isEmpty ? "Skip" : "Create Goal")
                         .font(LKFont.headline)
                         .foregroundColor(.white)
                         .frame(width: 160)
                         .padding(.vertical, 14)
-                        .background(goalName.isEmpty ? Color.white.opacity(0.2) : Color.accentColor)
+                        .background(trimmedName.isEmpty ? Color.white.opacity(0.2) : Color.accentColor)
                         .cornerRadius(LKRadius.lg)
                 }
                 .buttonStyle(.plain)
@@ -216,8 +216,8 @@ struct OnboardingView: View {
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
 
-                if !goalName.isEmpty {
-                    Text("\"\(goalName)\" has been created.")
+                if !trimmedName.isEmpty {
+                    Text("\"\(trimmedName)\" has been created.")
                         .font(LKFont.body)
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -240,14 +240,20 @@ struct OnboardingView: View {
                     .cornerRadius(LKRadius.lg)
             }
             .buttonStyle(.plain)
+            .keyboardShortcut(.defaultAction)
         }
         .padding(LKSpacing.xl)
     }
 
     // MARK: - Helpers
 
+    private var trimmedName: String {
+        goalName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private func createGoalAndProceed() {
-        let trimmed = goalName.trimmingCharacters(in: .whitespaces)
+        guard step == 1 else { return }
+        let trimmed = trimmedName
         if !trimmed.isEmpty {
             var g = Goal(name: trimmed)
             g.targetDeadline = hasDeadline ? targetDeadline : nil
