@@ -18,6 +18,7 @@ BUILD_DIR="${ROOT_DIR}/.build"
 TEMP_DIR="$(mktemp -d /tmp/lockedin_build.XXXXXX)"
 APP_DIR="${TEMP_DIR}/${APP_NAME}.app"
 DMG_ROOT="${TEMP_DIR}/dmg_root"
+trap 'rm -rf "${TEMP_DIR}"' EXIT
 
 echo "==> Building ${APP_NAME} for Apple Silicon (arm64)..."
 swift build -c release --triple arm64-apple-macosx13.0
@@ -61,6 +62,9 @@ if [ -d "${BUILD_DIR}/arm64-apple-macosx/release/LockedIn_LockedIn.bundle" ]; th
   cp -R "${BUILD_DIR}/arm64-apple-macosx/release/LockedIn_LockedIn.bundle" "${APP_DIR}/Contents/Resources/"
 fi
 
+echo "==> Verifying universal binary..."
+lipo -info "${APP_DIR}/Contents/MacOS/${APP_NAME}"
+
 echo "==> Applying ad-hoc codesign..."
 codesign --force --deep --sign - "${APP_DIR}"
 
@@ -75,7 +79,7 @@ hdiutil create -volname "${APP_NAME}" -srcfolder "${DMG_ROOT}" -ov -format UDZO 
 
 echo "==> Cleaning up temporary files..."
 rm -rf "${TEMP_DIR}"
+trap - EXIT
 
 echo "==> Universal DMG built successfully: ${ROOT_DIR}/${DMG_NAME}"
 ls -lh "${ROOT_DIR}/${DMG_NAME}"
-lipo -info "${ROOT_DIR}/${APP_NAME}.app/Contents/MacOS/${APP_NAME}" 2>/dev/null || file "${BUILD_DIR}/arm64-apple-macosx/release/${APP_NAME}"
