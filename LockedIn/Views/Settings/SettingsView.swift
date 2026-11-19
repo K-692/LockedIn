@@ -259,7 +259,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: LKSpacing.sm) {
             Toggle("Show remaining days in menu bar", isOn: vm.settingBinding(\.showCountdownInMenuBar))
             Toggle("Show progress percentage in menu bar", isOn: vm.settingBinding(\.showProgressInMenuBar))
-            Toggle("Alternate with nearest task deadline every 5 seconds", isOn: vm.settingBinding(\.alternateNearestTaskInMenuBar))
+            Toggle("Alternate with days until the next task is due (every 5 seconds)", isOn: vm.settingBinding(\.alternateNearestTaskInMenuBar))
 
             HStack(alignment: .top, spacing: LKSpacing.sm) {
                 Image(systemName: "lock.shield")
@@ -267,7 +267,7 @@ struct SettingsView: View {
                     .font(.system(size: 13))
                     .padding(.top, 2)
 
-                Text("LockedIn always stays in the menu bar — closing the window or choosing Quit from the Dock keeps it running there. Task titles are never shown in the menu bar, only dates. To exit completely, use \u{201C}Quit LockedIn\u{201D} in the menu bar panel or press \u{2325}\u{2318}Q.")
+                Text("LockedIn always stays in the menu bar — closing the window or choosing Quit from the Dock keeps it running there. The menu bar shows only remaining days and progress — dates and task titles stay in the menu bar panel. To exit completely, use \u{201C}Quit LockedIn\u{201D} in the menu bar panel or press \u{2325}\u{2318}Q.")
                     .font(LKFont.caption)
                     .foregroundColor(.labelSecondary)
                     .fixedSize(horizontal: false, vertical: true)

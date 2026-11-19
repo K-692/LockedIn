@@ -117,7 +117,7 @@ The menu bar item operates on a discrete 5-second clock pulse to maximize inform
 |       STATE A: GOAL MODE       | ------------------> |       STATE B: TASK MODE       |
 |                                |                     |                                |
 | Displays:                      |                     | Displays:                      |
-| [lock.fill] DD-MM-YYYY (Xd) X% | <------------------ | [checklist] DD-MM-YYYY (Xd)    |
+| [lock.fill] Xd X%              | <------------------ | [checklist] Xd                 |
 +--------------------------------+   Clock Tick (5s)   +--------------------------------+
          |                                                            ^
          |                    No Tasks with Deadlines                 |
@@ -126,11 +126,12 @@ The menu bar item operates on a discrete 5-second clock pulse to maximize inform
 
 1. **State A (Goal Countdown)**:
    - Evaluated when `showNearestTaskInMenuBar == false` or when no incomplete tasks have an explicit deadline.
-   - Shows: `[lock.fill]` + Goal target deadline (`DD-MM-YYYY`) + remaining days (`(142d)`) + overall completion percentage.
+   - Shows: `[lock.fill]` + remaining days (`142d`) + overall completion percentage. No dates.
 2. **State B (Nearest Target Task - Private Date Only)**:
    - Evaluated when `showNearestTaskInMenuBar == true` AND `nearestTargetTask != nil`.
    - Resolves: $\min_{t \in T_{\text{incomplete}}} \{ t.\text{deadline} \}$.
-   - Shows: `[checklist]` + task deadline (`DD-MM-YYYY`) + days remaining. **Never exposes task title in the menu bar.**
+   - Shows: `[checklist]` + days until the task is due. **Never exposes the task title or date in the menu bar.**
+3. **Fixed width**: both states are drawn by `MenuBarLabelRenderer` into one template image whose width is the maximum of the two states (monospaced digits), so the status item never resizes and neighbouring icons never shift.
 
 ### 4.2 Always-On Menu Bar Lifecycle
 
