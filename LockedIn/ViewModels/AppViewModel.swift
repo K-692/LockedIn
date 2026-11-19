@@ -238,7 +238,9 @@ final class AppViewModel: ObservableObject {
 
     private func tickMenuBar() {
         // Only publish a change when there is something to alternate to — avoids needless redraws.
-        let canAlternate = settings.alternateNearestTaskInMenuBar && nearestTargetTask?.deadline != nil
+        let canAlternate = settings.alternateNearestTaskInMenuBar
+            && settings.showCountdownInMenuBar
+            && nearestTargetTask?.deadline != nil
         let next = canAlternate ? !showNearestTaskInMenuBar : false
         if next != showNearestTaskInMenuBar { showNearestTaskInMenuBar = next }
     }

@@ -44,8 +44,9 @@ Goal ─▶ Categories ─▶ Tasks ─▶ Subtasks
 - The menu bar item stays active for as long as LockedIn runs. Closing the window, choosing **Quit** from the Dock, or pressing **⌘Q** closes the window only — the countdown remains in the menu bar.
 - When the window is closed, the Dock icon is hidden automatically (configurable), so LockedIn behaves like a lightweight menu bar utility.
 - To exit completely, use **Quit LockedIn** in the menu bar panel or **⌥⌘Q**. Logout, restart and shutdown are never blocked.
-- The label alternates every five seconds between the goal countdown and the nearest task deadline. **Task titles are never shown in the menu bar** — only dates.
-- The panel offers a mini dashboard, a goal switcher, and a one-click checklist of pending tasks sorted by urgency.
+- The label is compact: remaining days and progress for the goal (e.g. `958d 42%`), alternating every five seconds with days until the next task is due. **Dates and task titles never appear in the menu bar** — they are shown in the panel.
+- The label keeps a fixed width while it alternates, so neighbouring menu bar icons never shift.
+- The panel offers a mini dashboard with all dates, a goal switcher, and a one-click checklist of pending tasks sorted by urgency.
 
 ### Planning and tracking
 - **Dashboard** — active goal, day countdown, overall progress ring, task statistics, the most urgent task (complete it with **⌘↩**), upcoming work and milestones.

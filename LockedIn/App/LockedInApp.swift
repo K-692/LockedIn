@@ -60,36 +60,112 @@ struct LockedInApp: App {
 }
 
 // MARK: - Menu Bar Label
+//
+// The status item shows only remaining days (and goal progress) — never dates or task
+// titles; dates live in the popover. Both alternating phases are drawn into a single
+// template image of the SAME fixed width, so the item never resizes and neighbouring
+// menu bar icons never shift. Monospaced digits keep the width stable as numbers change.
 
 private struct MenuBarLabel: View {
     @ObservedObject var vm: AppViewModel
 
     var body: some View {
-        // NOTE: The status-item label only renders Image/Text, so keep it flat.
-        if vm.showNearestTaskInMenuBar, let task = vm.nearestTargetTask, let dl = task.targetDeadline {
-            // View A: nearest task deadline (task name is intentionally never shown — privacy).
-            Image(systemName: "checklist")
-            Text(labelText(date: dl, days: vm.settings.showCountdownInMenuBar ? task.daysRemaining : nil, progress: nil))
-        } else if let goal = vm.activeGoal {
-            // View B: overall goal countdown & progress.
-            Image(systemName: "lock.fill")
-            Text(labelText(
-                date: goal.targetDeadline,
-                days: vm.settings.showCountdownInMenuBar ? goal.daysRemaining : nil,
-                progress: vm.settings.showProgressInMenuBar ? goal.overallProgress : nil
-            ))
-        } else {
-            Image(systemName: "lock.fill")
-            Text("LockedIn")
-        }
+        let goalPhase = goalSegment
+        let taskPhase = taskSegment
+        let current = (vm.showNearestTaskInMenuBar ? taskPhase : nil) ?? goalPhase
+        let width = MenuBarLabelRenderer.width(fitting: [goalPhase, taskPhase].compactMap { $0 })
+
+        Image(nsImage: MenuBarLabelRenderer.image(for: current, width: width))
+            .accessibilityLabel(current.accessibilityText)
     }
 
-    private func labelText(date: Date?, days: Int?, progress: Double?) -> String {
+    /// Goal phase: lock + remaining days + progress.
+    private var goalSegment: MenuBarLabelRenderer.Segment {
+        guard let goal = vm.activeGoal else {
+            return .init(symbol: "lock.fill", text: "", accessibilityText: "LockedIn")
+        }
         var parts: [String] = []
-        if let date { parts.append(date.formattedDDMMYYYY) }
-        if let days { parts.append(days < 0 ? "(\(-days)d over)" : "(\(days)d)") }
-        if let progress { parts.append("\(Int((progress * 100).rounded()))%") }
-        return parts.isEmpty ? "LockedIn" : parts.joined(separator: " ")
+        if vm.settings.showCountdownInMenuBar, let days = goal.daysRemaining {
+            parts.append(Self.daysText(days))
+        }
+        if vm.settings.showProgressInMenuBar {
+            parts.append("\(Int((goal.overallProgress * 100).rounded()))%")
+        }
+        return .init(symbol: "lock.fill",
+                     text: parts.joined(separator: " "),
+                     accessibilityText: "LockedIn: \(goal.name), \(parts.joined(separator: ", "))")
+    }
+
+    /// Task phase: checklist + days until the nearest task deadline (no title, no date).
+    private var taskSegment: MenuBarLabelRenderer.Segment? {
+        guard vm.settings.alternateNearestTaskInMenuBar,
+              vm.settings.showCountdownInMenuBar,
+              let days = vm.nearestTargetTask?.daysRemaining else { return nil }
+        return .init(symbol: "checklist",
+                     text: Self.daysText(days),
+                     accessibilityText: "Next task due in \(days) days")
+    }
+
+    private static func daysText(_ days: Int) -> String {
+        days < 0 ? "\(-days)d late" : "\(days)d"
+    }
+}
+
+/// Draws the menu bar label as a template NSImage (adapts to light/dark menu bars).
+enum MenuBarLabelRenderer {
+    struct Segment: Equatable {
+        let symbol: String
+        let text: String
+        let accessibilityText: String
+    }
+
+    private static let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+    private static let iconSlot: CGFloat = 16      // fixed slot so both symbols occupy the same space
+    private static let iconTextGap: CGFloat = 4
+    private static let horizontalInset: CGFloat = 2 // breathing room inside the status item
+    private static let height: CGFloat = 18
+
+    private static func textWidth(_ text: String) -> CGFloat {
+        guard !text.isEmpty else { return 0 }
+        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
+    }
+
+    private static func contentWidth(_ segment: Segment) -> CGFloat {
+        let t = textWidth(segment.text)
+        return iconSlot + (t > 0 ? iconTextGap + t : 0)
+    }
+
+    /// One shared width for every phase, so alternating never resizes the status item.
+    static func width(fitting segments: [Segment]) -> CGFloat {
+        (segments.map(contentWidth).max() ?? iconSlot) + horizontalInset * 2
+    }
+
+    static func image(for segment: Segment, width: CGFloat) -> NSImage {
+        let size = NSSize(width: width, height: height)
+        let image = NSImage(size: size, flipped: false) { rect in
+            // Centre the content inside the fixed width so the shorter phase has even margins.
+            var x = floor((rect.width - contentWidth(segment)) / 2)
+
+            if let symbol = NSImage(systemSymbolName: segment.symbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(symbolConfig) {
+                let s = symbol.size
+                let origin = NSPoint(x: x + (iconSlot - s.width) / 2, y: (rect.height - s.height) / 2)
+                symbol.draw(in: NSRect(origin: origin, size: s))
+            }
+            x += iconSlot
+
+            if !segment.text.isEmpty {
+                x += iconTextGap
+                let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.black]
+                let textSize = (segment.text as NSString).size(withAttributes: attrs)
+                let y = (rect.height - textSize.height) / 2
+                (segment.text as NSString).draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
+            }
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 }
 
