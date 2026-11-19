@@ -26,6 +26,10 @@
 
 ---
 
+<p align="center">
+  <img src="docs/screenshots/dashboard.jpg" width="820" alt="LockedIn dashboard showing the active goal, a 84-day countdown, 31% overall progress and the most urgent task" />
+</p>
+
 ## Overview
 
 LockedIn helps you commit to one meaningful outcome — a thesis, a product launch, a certification, a training block — and keep it front of mind until it is done. You define a **goal** with a target date, break it into **categories**, **tasks**, **subtasks** and **milestones**, and LockedIn turns that structure into a live countdown and progress view.
@@ -37,6 +41,40 @@ Goal ─▶ Categories ─▶ Tasks ─▶ Subtasks
   │                     │
   └── target date       └── deadline · priority · status · milestone
 ```
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/add-tasks.jpg" alt="Add Tasks: goal sidebar, colour-coded categories, tasks with status and priority badges, and inline subtasks" /><br />
+      <sub><b>Add Tasks</b> — goals, categories, tasks and subtasks with inline quick-add</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/settings.jpg" alt="Settings: active goal, remaining time, goal switcher and appearance options" /><br />
+      <sub><b>Settings</b> — active goal, appearance, menu bar, notifications and backups</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/menubar-dashboard.jpg" width="330" alt="Menu bar panel dashboard with countdown, nearest task and category progress" /><br />
+      <sub><b>Menu bar panel</b> — countdown, nearest task and category progress</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/menubar-tasks.jpg" width="330" alt="Menu bar panel task checklist sorted by deadline" /><br />
+      <sub><b>Menu bar checklist</b> — pending tasks by urgency; click to complete</sub>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/screenshots/label-goal.jpg" height="27" alt="Menu bar label showing 84d 31%" />
+  &nbsp;&nbsp;⇄&nbsp;&nbsp;
+  <img src="docs/screenshots/label-task.jpg" height="27" alt="Menu bar label showing 6d until the next task" /><br />
+  <sub>The menu bar label alternates between goal countdown and progress and days until the next task — at a fixed width, with no dates or task titles.</sub>
+</p>
+
+<sub>Screenshots use sample data.</sub>
 
 ## Features
 
@@ -149,6 +187,7 @@ LockedIn/
 │   └── Shared/                      Design tokens, reusable components, app icon
 ├── Assets.xcassets/
 └── Info.plist
+docs/screenshots/                    Images used in this README
 scripts/build_dmg.sh                 Universal (arm64 + x86_64) app bundle and DMG
 ```
 
