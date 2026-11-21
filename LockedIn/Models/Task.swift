@@ -185,6 +185,14 @@ struct Task: Identifiable, Codable, Hashable {
 // MARK: - Sorting
 
 extension Array where Element == Task {
+    /// Display order for task lists: pending tasks by earliest deadline (no deadline last),
+    /// then completed tasks — also by deadline — at the bottom.
+    func sortedByDeadline() -> [Task] {
+        let pending = filter { $0.status != .completed }.sortedByUrgency()
+        let done = filter { $0.status == .completed }.sortedByUrgency()
+        return pending + done
+    }
+
     /// Earliest deadline first (tasks without a deadline last), then priority, then creation order.
     func sortedByUrgency() -> [Task] {
         sorted { a, b in

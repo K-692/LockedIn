@@ -89,6 +89,7 @@ Goal ─▶ Categories ─▶ Tasks ─▶ Subtasks
 ### Planning and tracking
 - **Dashboard** — active goal, day countdown, overall progress ring, task statistics, the most urgent task (complete it with **⌘↩**), upcoming work and milestones.
 - **Add Tasks** — goal sidebar, colour-coded categories with progress rings, inline quick-add (type and press Return), detailed task sheets with notes, priority, status, deadline, milestone flag and subtasks.
+- Tasks in every list are ordered by deadline — overdue and soonest first, tasks without a deadline after, completed tasks at the bottom.
 - Subtasks can be completed or removed directly from the task list; editing a task preserves each subtask's completion state.
 - Right-click context menus on goals and tasks for status, priority, edit and delete.
 - Destructive actions on goals, categories and tasks with subtasks ask for confirmation and state exactly what will be removed.

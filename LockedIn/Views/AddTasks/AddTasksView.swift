@@ -505,7 +505,7 @@ struct AddTasksView: View {
             // Tasks List
             VStack(spacing: 2) {
                 // Existing Tasks
-                ForEach(category.tasks) { task in
+                ForEach(category.tasks.sortedByDeadline()) { task in
                     TaskRowView(
                         task: task,
                         categoryId: category.id,
